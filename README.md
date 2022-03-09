@@ -60,8 +60,8 @@ export PATH="$HOME/.local/bin:$PATH"
 - `nano ~/.gitconfig`
 ```
 [user]
-	email = mnalavadi@gmail.com
-	name = momonala
+	email = <GIT EMAIL>
+	name = <GIT USERNAME>
 [filter "lfs"]
 	clean = git-lfs clean -- %f
 	smudge = git-lfs smudge -- %f
