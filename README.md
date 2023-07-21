@@ -29,6 +29,9 @@ network={
 - no more password needed on SSH!
 
 #### Basic updates & software
+
+[update python version](https://stackoverflow.com/questions/64718274/how-to-update-python-in-raspberry-pi)
+
 ```
 sudo apt-get update
 sudo apt-get upgrade -y
@@ -76,6 +79,50 @@ export PATH="$HOME/.local/bin:$PATH"
 ```
 - `nano ~/.git-credentials`
   - copy auth line from computer A
+ 
+#### SystemD:
+- create file: `/lib/systemd/system/<SERVICE_NAME>.service`
+  
+```
+[Unit]
+ Description= ...
+ After=multi-user.target
+
+ [Service]
+ WorkingDirectory=/home/mnalavadi/<PI_DIRECTORY>
+ Type=idle
+ ExecStart=/usr/bin/python3 <SOME COMMAND>
+ User=mnalavadi
+
+ [Install]
+ WantedBy=multi-user.target
+```
+
+- Start the services
+```
+sudo chmod 644 /lib/systemd/system/<SERVICE_NAME>.service
+
+sudo systemctl daemon-reload
+sudo systemctl daemon-reexec
+
+sudo systemctl enable <SERVICE_NAME>.service
+
+sudo reboot
+```
+
+- View logs
+```
+journalctl -u <SERVICE_NAME>.service
+-f [to follow]
+-r [reverse order]
+```
+
+#### Rysnc:
+sync computer --> pi
+- `rsync -avu . mnalavadi@192.168.0.183:<PI_DIRECTORY/>`
+
+sync pi --> computer
+- `rsync -avu mnalavadi@192.168.0.183:<PI_DIRECTORY/> .`
 
 #### Mount a USB drive:
 - https://raspberrytips.com/mount-usb-drive-raspberry-pi/
