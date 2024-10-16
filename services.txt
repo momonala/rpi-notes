@@ -1,2 +1,4 @@
 journalctl -u mqtt.service
 journalctl -u projects_bathroom_button.service -f
+journalctl -u projects_train_tracker.service -f
+journalctl -u projects_train_tracker_site.service -f

@@ -1,3 +1,6 @@
+apt-get update
+
+# install git
 apt-get install git -y
 
 # Install poetry
