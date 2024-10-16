@@ -1,0 +1,2 @@
+journalctl -u mqtt.service
+journalctl -u projects_bathroom_button.service -f

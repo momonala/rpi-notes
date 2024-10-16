@@ -1,48 +1,52 @@
-## Raspberry Pi Notes
+## Raspberry Pi setup notes
 because I have to go through this too many times
 
-### Setup
-
 #### Headless SSH:
-- create the ssh file in the Pi SD card: `touch /Volumes/boot/ssh`
-- create a file called `wpa_supplicant.conf` with the contents:
+- create the ssh file in the Pi SD card:
+```bash
+mkdir /Volumes/system-boot/boot
+touch /Volumes/system-boot/boot/ssh
 ```
-country=DE
-ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-update_config=1
 
-network={
-    ssid="NETWORK-NAME"
-    psk="NETWORK-PASSWORD"
-}
+- get IP address of new headless Pi. [assuming name==mnalavadi] One of:
+```bash
+ping mnalavadi.local
+nmap -sn 192.168.0.0/24
+``` 
+- SSH: `ssh mnalavadi@192.168.0.184`
+
+#### Enable SSH & Password Authentication for root
+set password for root:
+```bash
+sudo passwd root
 ```
-- get IP address of new headless Pi: `ping raspberrypi.local`
-- SSH: `ssh pi@192.168.0.184`
+
+edit the SSH configuratiopn `sudo nano /etc/ssh/sshd_config` to these lines:
+```bash
+PermitRootLogin prohibit-password
+PermitRootLogin yes
+PasswordAuthentication yes
+```
+restart SSH: `sudo systemctl restart ssh`
+SSH: `ssh root@192.168.0.184`
 
 #### Use RSA Keys for SSH authentication (no more password!):
 - make RSA keys on computer A.
    -  should have them already. Check if file `/Users/mnalavadi/.ssh/id_rsa.pub` exists. Skip step if so.
    - else: `ssh-keygen -t rsa`
-- in Pi make SSH dir: `ssh pi@IP_ADDRESS  mkdir -p .ssh`
+- in Pi make SSH dir: `ssh mnalavadi@192.168.0.184  mkdir -p .ssh`
 - dump computer A public keys into auth folder on Pi:
-   - `cat /Users/mnalavadi/.ssh/id_rsa.pub | ssh pi@IP_ADDRESS 'cat >> .ssh/authorized_keys'`
+   - `cat /Users/mnalavadi/.ssh/id_rsa.pub | ssh mnalavadi@192.168.0.184 'cat >> .ssh/authorized_keys'`
 - no more password needed on SSH!
 
 #### Basic updates & software
-```
-sudo apt-get update
-sudo apt-get upgrade -y
-sudo apt-get install nano git python3-pip -y
-```
+See `update_system.sh`
 
-```
-pip install -U jupyter ipython
-```
 - note: you can run jupyter on the PI but interact on another computer by setting the host:
-  - ` jupyter notebook --ip IP_ADDRESS`
+  - ` jupyter notebook --ip 192.168.0.184`
 
 #### useful aliases and env vars
-- add to ~/.bashrc
+- add to `nano ~/.bashrc`
 ```
 alias c=clear
 alias cd..='cd ..'
@@ -54,9 +58,18 @@ alias nanobash='nano ~/.bashrc'
 alias sourcebash='source ~/.bashrc'
 
 export PATH="$HOME/.local/bin:$PATH"
+
+~/metrics.sh
 ```
 
 #### Authenticate Git (no password needed on pushes!)
+the short way:
+```
+scp ~/.gitconfig mnalavadi@192.168.0.184:/home/mnalavadi/.gitconfig
+scp ~/.git-credentials mnalavadi@192.168.0.184:/home/mnalavadi/.git-credentials
+```
+
+Or the long way...
 - `nano ~/.gitconfig`
 ```
 [user]
@@ -74,8 +87,7 @@ export PATH="$HOME/.local/bin:$PATH"
 [credential]
 	helper = store
 ```
-- `nano ~/.git-credentials`
-  - copy auth line from computer A
+- copy auth line from computer A to pi `nano ~/.git-credentials`
 
 #### Mount a USB drive:
 - https://raspberrytips.com/mount-usb-drive-raspberry-pi/
