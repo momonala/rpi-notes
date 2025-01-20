@@ -24,5 +24,5 @@ sudo apt full-upgrade
 
 
 echo -e "${GREEN}Upgrade process completed successfully!${NO_COLOR}"
-sudo reboot
+#sudo reboot
 
