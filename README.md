@@ -91,6 +91,9 @@ alias la='ls -lAh'
 alias nanobash='nano ~/.bashrc'
 alias sourcebash='source ~/.bashrc'
 
+alias train_tracker="sd && ca train_tracker && cd /home/mnalavadi/train_tracker"
+alias bathroom_media="sd && ca bathroom_media && cd /home/mnalavadi/bathroom_media"
+
 export PATH="$HOME/.local/bin:$PATH"
 
 ~/metrics.sh
