@@ -41,6 +41,17 @@ SSH: `ssh root@192.168.0.184`
 - dump computer A public keys into auth folder on Pi:
    - `cat /Users/mnalavadi/.ssh/id_rsa.pub | ssh mnalavadi@192.168.0.184 'cat >> .ssh/authorized_keys'`
 
+### Download and install latest Conda:
+
+note: do this on a laptop then scp to Pi
+note: run `-b` to skip license agreement
+
+```bash
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh
+bash Miniconda3-latest-Linux-aarch64.sh -b
+~/miniconda3/bin/conda init
+```
+
 ### Basic updates & software
 See `update_system.sh`
 
