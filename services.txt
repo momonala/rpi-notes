@@ -4,6 +4,7 @@ journalctl -u projects_train_tracker.service -f
 journalctl -u projects_train_tracker_site.service -f
 journalctl -u projects_overland_server.service -f
 journalctl -u projects_incognita_dashboard.service
+journalctl -u projects_incognita_git_commit_scheduler.service
 journalctl -u projects_bathroom_button.service -f
 journalctl -u projects_usc_vis.service -f
 journalctl -u projects_usc_scheduler.service
