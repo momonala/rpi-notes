@@ -1,0 +1,13 @@
+tunnel: raspberrypi-tunnel
+credentials-file: /home/mnalavadi/.cloudflared/raspberrypi-tunnel.json
+
+ingress:
+  - hostname: inspectordetector.mnalavadi.org
+    service: http://localhost:5002
+  - hostname: trace.mnalavadi.org
+    service: http://localhost:5003
+  - hostname: incognita.mnalavadi.org
+    service: http://localhost:5004
+  - hostname: usc-vis.mnalavadi.org
+    service: http://localhost:5006
+  - service: http_status:404
