@@ -57,38 +57,6 @@ See `update_system.sh`
 
 [update python version](https://stackoverflow.com/questions/64718274/how-to-update-python-in-raspberry-pi)
 
-#### automatic updates
-```bash
-sudo apt-get install unattended-upgrades
-sudo dpkg-reconfigure unattended-upgrades # enable unattended-upgrades:
-```
-
-Edit configuration: `sudo nano /etc/apt/apt.conf.d/50unattended-upgrades`
-```bash
-# allow security updates
-Unattended-Upgrade::Allowed-Origins {
-    "${distro_id}:${distro_codename}";
-    "${distro_id}:${distro_codename}-security";
-};
-
-# Enable regular updates (not just security updates) 
-"${distro_id}:${distro_codename}-updates";
-
-# Automatically reboot after an update
-Unattended-Upgrade::Automatic-Reboot "true";
-```
-
-To ensure the updates run daily, enable the unattended-upgrades service:
-
-```bash
-sudo systemctl enable unattended-upgrades
-sudo systemctl start unattended-upgrades
-```
-
-Monitor Logs:
-```bash
-cat /var/log/unattended-upgrades/unattended-upgrades.log
-```
 ### useful aliases and env vars
 - add to `nano ~/.bashrc`
 ```
@@ -101,13 +69,12 @@ alias gp='git push'
 alias la='ls -lAh'
 alias nanobash='nano ~/.bashrc'
 alias sourcebash='source ~/.bashrc'
+alias sd='conda deactivate'
+alias ca='conda activate'
 
 alias train_tracker="sd && ca train_tracker && cd /home/mnalavadi/train_tracker"
-alias bathroom_media="sd && ca bathroom_media && cd /home/mnalavadi/bathroom_media"
-
-export PATH="$HOME/.local/bin:$PATH"
-
-~/metrics.sh
+alias bathroom_button="sd && ca bathroom_button && cd /home/mnalavadi/bathroom_button"
+alias gps="sd && ca incognita && cd /home/mnalavadi/incognita"
 ```
 
 ### Authenticate Git (no password needed on pushes!)
@@ -192,3 +159,7 @@ sync pi --> computer
 #### Notes
 - note: you can run jupyter on the PI but interact on another computer by setting the host:
   - ` jupyter notebook --ip 192.168.0.184`
+
+  ### CloudFlare
+  See [here](cloudflared/README.md)
+  
