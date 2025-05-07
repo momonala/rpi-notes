@@ -9,6 +9,8 @@ journalctl -u projects_incognita_git_commit_scheduler.service
 journalctl -u projects_bathroom_button.service -f
 journalctl -u projects_usc_vis.service -f
 journalctl -u projects_usc_scheduler.service
+journalctl -u projects_flight_calendar_updater.service -f
+journalctl -u projects_against_the_compass_tour_extension.service -f
 
 sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
 sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
