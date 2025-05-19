@@ -1,0 +1,12 @@
+[Unit]
+ Description=Service Monitor
+ After=multi-user.target
+
+ [Service]
+ WorkingDirectory=/home/mnalavadi/rpi-notes
+ Type=idle
+ ExecStart=/home/mnalavadi/miniconda3/envs/servicemonitor/bin/python app.py
+ User=mnalavadi
+
+ [Install]
+ WantedBy=multi-user.target
