@@ -94,7 +94,9 @@ cloudflared tunnel route dns raspberrypi-tunnel newapp.mnalavadi.org
 3. Restart SystemD Cloudflare Tunnel service:
 ```
 sudo systemctl restart cloudflared
+journalctl -u cloudflared.service -f
 ```
+
 
 ---
 Notes
