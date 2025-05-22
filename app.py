@@ -101,17 +101,27 @@ def index():
     service = request.args.get("service")
     services = get_services()
 
-    if not service and services:
-        service = services[0]
-
     # Get status for all services
     service_statuses = [get_service_status(svc) for svc in services]
 
-    # Get detailed info for selected service
+    # Define website links
+    websites = [
+        {"name": "pingpong", "url": "https://pingpong.mnalavadi.org", "description": "Shared Expense Trakcer"},
+        {"name": "USC-vis", "url": "https://usc-vis.mnalavadi.org/mobile", "description": "USC checkin visualizer"},
+        {"name": "trainspotter", "url": "https://trainspotter.mnalavadi.org", "description": "spot when the next train comes!"},
+        {"name": "inspectordetector", "url": "https://inspectordetector.mnalavadi.org", "description": "Gute Schwartzfahrt!"},
+        {"name": "Trace", "url": "https://trace.mnalavadi.org", "description": "GPS Tracker"},
+    ]
+
+    # Get detailed info for selected service if one is selected
     service_info = get_service_info(service) if service else ""
 
     return render_template(
-        "index.html", services=service_statuses, current=service, service_info=service_info
+        "index.html", 
+        services=service_statuses, 
+        current=service, 
+        service_info=service_info,
+        websites=websites
     )
 
 
