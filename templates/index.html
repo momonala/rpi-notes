@@ -93,7 +93,6 @@
                     {% if current %}
                     {{ current }}
                     {% else %}
-                    Select a service
                     {% endif %}
                 </h2>
             </div>
@@ -103,8 +102,14 @@
                     <div class="service-info">{{ service_info }}</div>
                 </div>
                 {% else %}
-                <div class="text-gray-400 text-center mt-8">
-                    Select a service to view its details
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {% for website in websites %}
+                    <a href="{{ website.url }}" target="_blank" rel="noopener noreferrer" 
+                       class="block bg-gray-800 rounded-lg shadow p-6 hover:bg-gray-700 transition-colors duration-200">
+                        <h3 class="text-xl font-semibold text-gray-100 mb-2">{{ website.name }}</h3>
+                        <p class="text-gray-400">{{ website.description }}</p>
+                    </a>
+                    {% endfor %}
                 </div>
                 {% endif %}
             </div>
