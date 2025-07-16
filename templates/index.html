@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Service Monitor</title>
-	<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
         html { color-scheme: dark; }
@@ -62,9 +61,15 @@
                 </button>
             </div>
             <nav class="p-2 flex-1">
+                <div class="mb-2 flex items-center gap-2">
+                    <button id="sortUptime" class="px-3 py-1 rounded bg-blue-800 text-blue-200 hover:bg-blue-700 transition">Sort by Uptime</button>
+                    <button id="sortName" class="px-3 py-1 rounded bg-gray-700 text-gray-200 hover:bg-gray-600 transition">Sort by Name</button>
+                </div>
+                <div id="serviceList">
                 {% for svc in services %}
                 <a href="?service={{ svc.name }}" 
-                   class="service-link block p-2 rounded-lg mb-1 relative {% if svc.name == current %}bg-blue-900 text-blue-300{% else %}text-gray-300 hover:bg-gray-700{% endif %}">
+                   class="service-link block p-2 rounded-lg mb-1 relative {% if svc.name == current %}bg-blue-900 text-blue-300{% else %}text-gray-300 hover:bg-gray-700{% endif %}"
+                   data-name="{{ svc.name }}" data-uptime="{{ svc.uptime|default('') }}">
                     <div class="flex items-center relative">
                         <span class="status-indicator {% if svc.is_active %}status-active{% elif svc.is_failed %}status-failed{% else %}status-inactive{% endif %}"></span>
                         <span class="truncate">{{ svc.name }}</span>
@@ -84,6 +89,7 @@
                     {% endif %}
                 </a>
                 {% endfor %}
+                </div>
             </nav>
         </div>
         <!-- Main Content -->
@@ -93,6 +99,7 @@
                     {% if current %}
                     {{ current }}
                     {% else %}
+                    Select a service
                     {% endif %}
                 </h2>
             </div>
@@ -161,6 +168,58 @@
                 closeSidebar();
             }
         });
+
+        // Sorting logic for services
+        function uptimeToSeconds(uptime) {
+            if (!uptime) return 0;
+            let total = 0;
+            let lastValue = 0;
+            const units = {
+                'day': 86400, 'days': 86400,
+                'hour': 3600, 'hours': 3600,
+                'min': 60, 'minute': 60, 'minutes': 60,
+                'sec': 1, 'second': 1, 'seconds': 1
+            };
+            const parts = uptime.split(/\s+/);
+            for (let i = 0; i < parts.length; i++) {
+                const part = parts[i];
+                const value = parseInt(part);
+                if (!isNaN(value)) {
+                    lastValue = value;
+                } else if (units[part.toLowerCase()]) {
+                    total += lastValue * units[part.toLowerCase()];
+                }
+            }
+            return total;
+        }
+
+        const serviceList = document.getElementById('serviceList');
+        const sortUptimeBtn = document.getElementById('sortUptime');
+        const sortNameBtn = document.getElementById('sortName');
+        let originalOrder = Array.from(serviceList.children);
+
+        function setActive(btn) {
+            sortUptimeBtn.classList.remove('ring-2', 'ring-blue-400');
+            sortNameBtn.classList.remove('ring-2', 'ring-blue-400');
+            btn.classList.add('ring-2', 'ring-blue-400');
+        }
+
+        sortUptimeBtn.addEventListener('click', function() {
+            let items = Array.from(serviceList.children);
+            items.sort((a, b) => uptimeToSeconds(b.dataset.uptime) - uptimeToSeconds(a.dataset.uptime));
+            items.forEach(item => serviceList.appendChild(item));
+            setActive(sortUptimeBtn);
+        });
+
+        sortNameBtn.addEventListener('click', function() {
+            let items = Array.from(serviceList.children);
+            items.sort((a, b) => b.dataset.name.localeCompare(a.dataset.name)); // Z-A
+            items.forEach(item => serviceList.appendChild(item));
+            setActive(sortNameBtn);
+        });
+
+        // Default: no sort active
+        setActive({classList:{add:()=>{},remove:()=>{}}});
     </script>
 </body>
 </html>

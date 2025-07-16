@@ -106,11 +106,12 @@ def index():
 
     # Define website links
     websites = [
-        {"name": "pingpong", "url": "https://pingpong.mnalavadi.org", "description": "Shared Expense Trakcer"},
-        {"name": "USC-vis", "url": "https://usc-vis.mnalavadi.org/mobile", "description": "USC checkin visualizer"},
-        {"name": "trainspotter", "url": "https://trainspotter.mnalavadi.org", "description": "spot when the next train comes!"},
-        {"name": "inspectordetector", "url": "https://inspectordetector.mnalavadi.org", "description": "Gute Schwartzfahrt!"},
-        {"name": "Trace", "url": "https://trace.mnalavadi.org", "description": "GPS Tracker"},
+        {"name": "🏓 pingpong", "url": "https://pingpong.mnalavadi.org", "description": "Shared Expense Trakcer"},
+        {"name": "🧗🏽‍♂️ USC-vis", "url": "https://usc-vis.mnalavadi.org/mobile", "description": "USC checkin visualizer"},
+        {"name": "🚂 trainspotter", "url": "https://trainspotter.mnalavadi.org", "description": "spot when the next train comes!"},
+        {"name": "🚨 inspectordetector", "url": "https://inspectordetector.mnalavadi.org", "description": "Gute Schwartzfahrt!"},
+        {"name": "🌏 Trace", "url": "https://trace.mnalavadi.org", "description": "GPS Tracker"},
+        {"name": "🤠 img", "url": "https://img.mnalavadi.org", "description": ""},
     ]
 
     # Get detailed info for selected service if one is selected
