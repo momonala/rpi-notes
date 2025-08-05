@@ -26,11 +26,31 @@
         .service-tooltip { display: none; position: absolute; left: 3.5rem; top: 50%; transform: translateY(-50%); background: #222; color: #fff; padding: 0.25rem 0.75rem; border-radius: 0.25rem; font-size: 0.85rem; white-space: nowrap; z-index: 50; pointer-events: none; }
         .sidebar-collapsed .service-link:hover .service-tooltip { display: block !important; }
         .service-link, .service-link * { font-size: 0.95em !important; }
+        .restart-btn { 
+            opacity: 0; 
+            transition: opacity 0.2s ease;
+            font-size: 0.75rem !important;
+            padding: 0.25rem 0.5rem !important;
+            background: #dc2626;
+            color: white;
+            border: none;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .restart-btn:hover { background: #b91c1c; }
+        .restart-btn:disabled { background: #6b7280; cursor: not-allowed; }
+        .service-link:hover .restart-btn { opacity: 1; }
+        .restart-btn.loading { background: #3b82f6; }
         .mobile-hamburger { display: none; }
         @media (max-width: 768px) {
             .service-info { font-size: 0.7rem !important; }
             .mobile-hamburger { display: block !important; }
             .sidebar-title { margin-left: 2.5rem; }
+            .restart-btn { opacity: 1; font-size: 0.7rem !important; }
         }
         @media (min-width: 768px) {
             .sidebar-mobile { transform: none !important; }
@@ -67,27 +87,31 @@
                 </div>
                 <div id="serviceList">
                 {% for svc in services %}
-                <a href="?service={{ svc.name }}" 
-                   class="service-link block p-2 rounded-lg mb-1 relative {% if svc.name == current %}bg-blue-900 text-blue-300{% else %}text-gray-300 hover:bg-gray-700{% endif %}"
-                   data-name="{{ svc.name }}" data-uptime="{{ svc.uptime|default('') }}">
-                    <div class="flex items-center relative">
-                        <span class="status-indicator {% if svc.is_active %}status-active{% elif svc.is_failed %}status-failed{% else %}status-inactive{% endif %}"></span>
-                        <span class="truncate">{{ svc.name }}</span>
-                        <span class="service-tooltip">{{ svc.name }}</span>
-                    </div>
-                    {% if svc.uptime %}
-                    <span class="service-details text-xs text-gray-400 ml-4 mt-1 inline-block">Uptime: {{ svc.uptime }}</span>
-                    {% endif %}
-                    {% if svc.memory %}
-                    <span class="service-details text-xs text-green-400 ml-4 inline-block">💾 {{ svc.memory }}</span>
-                    {% endif %}
-                    {% if svc.cpu %}
-                    <span class="service-details text-xs text-blue-400 ml-4 inline-block">⚡ {{ svc.cpu }}</span>
-                    {% endif %}
-                    {% if svc.last_error %}
-                    <span class="service-details text-xs text-red-400 ml-4 inline-block">❌ {{ svc.last_error }}</span>
-                    {% endif %}
-                </a>
+                <div class="service-link block p-2 rounded-lg mb-1 relative {% if svc.name == current %}bg-blue-900 text-blue-300{% else %}text-gray-300 hover:bg-gray-700{% endif %}"
+                     data-name="{{ svc.name }}" data-uptime="{{ svc.uptime|default('') }}">
+                    <a href="?service={{ svc.name }}" class="block">
+                        <div class="flex items-center relative pr-16">
+                            <span class="status-indicator {% if svc.is_active %}status-active{% elif svc.is_failed %}status-failed{% else %}status-inactive{% endif %}"></span>
+                            <span class="truncate">{{ svc.name }}</span>
+                            <span class="service-tooltip">{{ svc.name }}</span>
+                        </div>
+                        {% if svc.uptime %}
+                        <span class="service-details text-xs text-gray-400 ml-4 mt-1 inline-block">Uptime: {{ svc.uptime }}</span>
+                        {% endif %}
+                        {% if svc.memory %}
+                        <span class="service-details text-xs text-green-400 ml-4 inline-block">💾 {{ svc.memory }}</span>
+                        {% endif %}
+                        {% if svc.cpu %}
+                        <span class="service-details text-xs text-blue-400 ml-4 inline-block">⚡ {{ svc.cpu }}</span>
+                        {% endif %}
+                        {% if svc.last_error %}
+                        <span class="service-details text-xs text-red-400 ml-4 inline-block">❌ {{ svc.last_error }}</span>
+                        {% endif %}
+                    </a>
+                    <button class="restart-btn" onclick="restartService('{{ svc.name }}', this)" title="Restart service">
+                        ↻
+                    </button>
+                </div>
                 {% endfor %}
                 </div>
             </nav>
@@ -220,6 +244,100 @@
 
         // Default: no sort active
         setActive({classList:{add:()=>{},remove:()=>{}}});
+
+        // Restart service function
+        async function restartService(serviceName, button) {
+            // Prevent event bubbling to avoid navigating to service details
+            event.stopPropagation();
+            event.preventDefault();
+            
+            // Show loading state
+            const originalText = button.textContent;
+            button.textContent = '⟳';
+            button.classList.add('loading');
+            button.disabled = true;
+            
+            try {
+                const response = await fetch(`/restart/${serviceName}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Show success feedback
+                    button.textContent = '✓';
+                    button.style.background = '#10B981';
+                    
+                    // Show notification
+                    showNotification(`Service ${serviceName} restarted successfully`, 'success');
+                    
+                    // Refresh the page after a short delay to show updated status
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    // Show error feedback
+                    button.textContent = '✗';
+                    button.style.background = '#EF4444';
+                    showNotification(`Failed to restart ${serviceName}: ${result.error}`, 'error');
+                    
+                    // Reset button after delay
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.style.background = '#dc2626';
+                        button.classList.remove('loading');
+                        button.disabled = false;
+                    }, 3000);
+                }
+            } catch (error) {
+                console.error('Error restarting service:', error);
+                button.textContent = '✗';
+                button.style.background = '#EF4444';
+                showNotification(`Error restarting ${serviceName}: ${error.message}`, 'error');
+                
+                // Reset button after delay
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.background = '#dc2626';
+                    button.classList.remove('loading');
+                    button.disabled = false;
+                }, 3000);
+            }
+        }
+
+        // Show notification function
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transition-all duration-300 transform translate-x-full ${
+                type === 'success' ? 'bg-green-800 text-green-100' : 
+                type === 'error' ? 'bg-red-800 text-red-100' : 
+                'bg-blue-800 text-blue-100'
+            }`;
+            notification.textContent = message;
+            
+            // Add to DOM
+            document.body.appendChild(notification);
+            
+            // Slide in
+            setTimeout(() => {
+                notification.classList.remove('translate-x-full');
+            }, 100);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                notification.classList.add('translate-x-full');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 5000);
+        }
     </script>
 </body>
 </html>

@@ -3,7 +3,7 @@ import re
 import subprocess
 from dataclasses import dataclass
 
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 
 logging.basicConfig(level=logging.INFO)
 
@@ -124,6 +124,30 @@ def index():
         service_info=service_info,
         websites=websites
     )
+
+
+@app.route("/restart/<service>", methods=["POST"])
+def restart_service(service):
+    """Restart a systemd service."""
+    try:
+        # Validate that the service name starts with "projects_" for security
+        if not service.startswith("projects_"):
+            return jsonify({"success": False, "error": "Invalid service name"}), 400
+        
+        # Execute the restart command
+        cmd = ["sudo", "systemctl", "restart", service]
+        result = subprocess.run(cmd, text=True, capture_output=True, timeout=30)
+        
+        if result.returncode == 0:
+            logging.info(f"Successfully restarted service: {service}")
+            return jsonify({"success": True, "message": f"Service {service} restarted successfully"})
+        else:
+            logging.error(f"Failed to restart service {service}: {result.stderr}")
+            return jsonify({"success": False, "error": result.stderr.strip() or "Unknown error"}), 500
+            
+    except Exception as e:
+        logging.error(f"Exception while restarting service {service}: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 if __name__ == "__main__":
