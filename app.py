@@ -121,6 +121,32 @@ def restart_service():
     return redirect(url_for("index", service=service))
 
 
+@app.route("/train-tracker/check", methods=["POST"])
+def train_tracker_check():
+    """Run the train tracker inspections check command."""
+    service = request.form.get("service", "")
+    if service != "projects_train_tracker.service":
+        logging.warning("Attempt to run train-tracker check for wrong service: %s", service)
+        return "Invalid service", 400
+
+    cmd = [
+        "/home/mnalavadi/miniconda3/envs/train_tracker/bin/python",
+        "-m",
+        "scripts.check_inspections",
+    ]
+
+    try:
+        result = subprocess.run(cmd, check=True, text=True, capture_output=True, cwd="/home/mnalavadi/train_tracker")
+        logging.info("Train-tracker check completed. stdout: %s", (result.stdout or "").strip())
+        if result.stderr:
+            logging.info("Train-tracker check stderr: %s", result.stderr.strip())
+    except subprocess.CalledProcessError as exc:
+        logging.error("Train-tracker check failed: %s", exc.stderr)
+        return (exc.stderr or "Train-tracker check failed"), 500
+
+    return redirect(url_for("index", service=service))
+
+
 @app.route("/")
 def index():
     service = request.args.get("service")
