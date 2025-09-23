@@ -3,7 +3,7 @@ import re
 import subprocess
 from dataclasses import dataclass
 
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for
 
 logging.basicConfig(level=logging.INFO)
 
@@ -94,6 +94,31 @@ def get_service_status(service):
         cpu=parse_cpu(status_text),
         last_error=parse_last_error(status_text),
     )
+
+
+@app.route("/restart", methods=["POST"])
+def restart_service():
+    """Restart a given service and redirect back to the index view."""
+    service = request.form.get("service", "")
+    try:
+        services = get_services()
+    except Exception as exc:
+        logging.exception("Failed to list services: %s", exc)
+        return "Failed to list services", 500
+
+    if service not in services:
+        logging.warning("Attempt to restart unknown or disallowed service: %s", service)
+        return "Invalid service", 400
+
+    try:
+        # Requires appropriate sudoers configuration for the running user
+        subprocess.run(["sudo", "systemctl", "restart", service], check=True, text=True, capture_output=True)
+        logging.info("Successfully restarted service %s", service)
+    except subprocess.CalledProcessError as exc:
+        logging.error("Failed to restart %s: %s", service, exc.stderr)
+        return (exc.stderr or f"Failed to restart {service}"), 500
+
+    return redirect(url_for("index", service=service))
 
 
 @app.route("/")
