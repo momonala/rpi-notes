@@ -21,12 +21,19 @@
         .sidebar-mobile { transition: transform 0.3s ease, width 0.3s ease; font-size: 0.85rem; }
         .sidebar-mobile.closed { transform: translateX(-100%); }
         .sidebar-mobile.open { transform: translateX(0); }
+        /* Prevent long content from blowing out the sidebar width */
+        #sidebar { overflow-x: hidden; }
+        @media (min-width: 768px) {
+            #sidebar { max-width: 55vw; } /* cap sidebar to half the screen on tablet/desktop */
+        }
         .sidebar-collapsed { width: 3.5rem !important; min-width: 3.5rem !important; }
         .sidebar-collapsed .sidebar-title, .sidebar-collapsed .service-details, .sidebar-collapsed .truncate { display: none !important; }
         .sidebar-collapsed .service-tooltip { display: block !important; }
         .service-tooltip { display: none; position: absolute; left: 3.5rem; top: 50%; transform: translateY(-50%); background: #222; color: #fff; padding: 0.25rem 0.75rem; border-radius: 0.25rem; font-size: 0.85rem; white-space: nowrap; z-index: 50; pointer-events: none; }
         .sidebar-collapsed .service-link:hover .service-tooltip { display: block !important; }
         .service-link, .service-link * { font-size: 0.95em !important; }
+        /* Utility to truncate with ellipsis */
+        .truncate-ellipsis { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; max-width: 100%; }
         .mobile-hamburger { display: none; }
         @media (max-width: 768px) {
             .service-info { font-size: 0.7rem !important; }
@@ -35,6 +42,10 @@
         }
         @media (min-width: 768px) {
             .sidebar-mobile { transform: none !important; }
+        }
+        /* Hide right-side website descriptions when sidebar is expanded on tablet-size screens */
+        @media (max-width: 1024px) {
+            #sidebar:not(.sidebar-collapsed) ~ .flex-1 .website-description { display: none; }
         }
     </style>
 </head>
@@ -63,7 +74,7 @@
             </div>
             <nav class="p-2 flex-1">
                 {% for svc in services %}
-                <div class="block p-2 rounded-lg mb-1 relative {% if svc.name == current %}bg-blue-900 text-blue-300{% else %}text-gray-300 hover:bg-gray-700{% endif %}">
+                <div class="block p-2 rounded-lg mb-1 relative overflow-hidden {% if svc.name == current %}bg-blue-900 text-blue-300{% else %}text-gray-300 hover:bg-gray-700{% endif %}">
                     <a href="?service={{ svc.name }}" class="flex items-center min-w-0 gap-2">
                         <span class="status-indicator {% if svc.is_active %}status-active{% elif svc.is_failed %}status-failed{% else %}status-inactive{% endif %}"></span>
                         <span class="truncate">{{ svc.name }}</span>
@@ -79,7 +90,7 @@
                     <span class="service-details text-xs text-blue-400 ml-4 inline-block">⚡ {{ svc.cpu }}</span>
                     {% endif %}
                     {% if svc.last_error %}
-                    <span class="service-details text-xs text-red-400 ml-4 inline-block">❌ {{ svc.last_error }}</span>
+                    <span class="service-details text-xs text-red-400 ml-4 inline-block truncate-ellipsis">❌ {{ svc.last_error }}</span>
                     {% endif %}
                 </div>
                 {% endfor %}
@@ -115,12 +126,19 @@
                     <div class="service-info">{{ service_info }}</div>
                 </div>
                 {% else %}
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 gap-6">
                     {% for website in websites %}
                     <a href="{{ website.url }}" target="_blank" rel="noopener noreferrer" 
                        class="block bg-gray-800 rounded-lg shadow p-6 hover:bg-gray-700 transition-colors duration-200">
-                        <h3 class="text-xl font-semibold text-gray-100 mb-2">{{ website.name }}</h3>
-                        <p class="text-gray-400">{{ website.description }}</p>
+                        {% set icon = '🔗' %}
+                        {% if website.name == 'inspectordetector' %}{% set icon = '🕵️' %}
+                        {% elif website.name == 'pingpong' %}{% set icon = '🏓' %}
+                        {% elif website.name == 'Trace' %}{% set icon = '📍' %}
+                        {% elif website.name == 'trainspotter' %}{% set icon = '🚃' %}
+                        {% elif website.name == 'USC-vis' %}{% set icon = '💪🏾' %}
+                        {% endif %}
+                        <h3 class="text-xl font-semibold text-gray-100 mb-2">{{ icon }} {{ website.name }}</h3>
+                        <p class="text-gray-400 website-description text-sm md:text-base">{{ website.description }}</p>
                     </a>
                     {% endfor %}
                 </div>
