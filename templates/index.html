@@ -124,14 +124,15 @@
                 {% if service_info %}
                 <div class="bg-gray-800 rounded-lg shadow p-4">
                     <div class="service-info">{{ service_info }}</div>
-                </div>
+                </div>g
                 {% else %}
                 <div class="grid grid-cols-1 gap-6">
                     {% for website in websites %}
                     <a href="{{ website.url }}" target="_blank" rel="noopener noreferrer" 
                        class="block bg-gray-800 rounded-lg shadow p-6 hover:bg-gray-700 transition-colors duration-200">
                         {% set icon = '🔗' %}
-                        {% if website.name == 'inspectordetector' %}{% set icon = '🕵️' %}
+                        {% if website.name == 'energyMonitor' %}{% set icon = '⚡️' %}
+                        {% elif website.name == 'inspectordetector' %}{% set icon = '🕵️' %}
                         {% elif website.name == 'pingpong' %}{% set icon = '🏓' %}
                         {% elif website.name == 'Trace' %}{% set icon = '📍' %}
                         {% elif website.name == 'trainspotter' %}{% set icon = '🚃' %}
