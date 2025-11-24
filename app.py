@@ -157,6 +157,7 @@ def index():
 
     # Define website links
     websites = [
+        {"name": "energyMonitor", "url": "https://energy-monitor.mnalavadi.org", "description": "Energy Monitor"},
         {"name": "pingpong", "url": "https://pingpong.mnalavadi.org", "description": "Shared Expense Trakcer"},
         {"name": "USC-vis", "url": "https://usc-vis.mnalavadi.org/mobile", "description": "USC checkin visualizer"},
         {"name": "trainspotter", "url": "https://trainspotter.mnalavadi.org", "description": "spot when the next train comes!"},
