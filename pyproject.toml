@@ -1,24 +1,43 @@
 [project]
 name = "servicemonitor"
 version = "0.1.0"
-description = ""
+description = "Web dashboard for monitoring systemd services"
 authors = [
     {name = "momonala",email = "mnalavadi@gmail.com"}
 ]
 readme = "README.md"
+requires-python = ">=3.12"
 dependencies = [
+    "flask>=3.0.0",
 ]
 
-
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
+requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.0"
+isort = "^5.13"
+vulture = "^2.11"
+mypy = "^1.11"
+pytest = "^8.0"
 
 [tool.black]
 line-length = 110
 target-version = ['py312']
-include = '\.py'
+include = '\.pyi?$'
 
-[tool.poetry.dependencies]
-python = "3.12.*"
-Flask = "*"
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+
+[tool.isort]
+force_single_line = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v"

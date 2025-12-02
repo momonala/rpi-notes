@@ -3,7 +3,11 @@ import re
 import subprocess
 from dataclasses import dataclass
 
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask
+from flask import redirect
+from flask import render_template
+from flask import request
+from flask import url_for
 
 logging.basicConfig(level=logging.INFO)
 
@@ -136,7 +140,9 @@ def train_tracker_check():
     ]
 
     try:
-        result = subprocess.run(cmd, check=True, text=True, capture_output=True, cwd="/home/mnalavadi/train_tracker")
+        result = subprocess.run(
+            cmd, check=True, text=True, capture_output=True, cwd="/home/mnalavadi/train_tracker"
+        )
         logging.info("Train-tracker check completed. stdout: %s", (result.stdout or "").strip())
         if result.stderr:
             logging.info("Train-tracker check stderr: %s", result.stderr.strip())
@@ -155,25 +161,47 @@ def index():
     # Get status for all services
     service_statuses = [get_service_status(svc) for svc in services]
 
-    # Define website links
+    # Website links with icons (icon mapping centralized here, not in template)
     websites = [
-        {"name": "energyMonitor", "url": "https://energy-monitor.mnalavadi.org", "description": "Energy Monitor"},
-        {"name": "pingpong", "url": "https://pingpong.mnalavadi.org", "description": "Shared Expense Trakcer"},
-        {"name": "USC-vis", "url": "https://usc-vis.mnalavadi.org/mobile", "description": "USC checkin visualizer"},
-        {"name": "trainspotter", "url": "https://trainspotter.mnalavadi.org", "description": "spot when the next train comes!"},
-        {"name": "inspectordetector", "url": "https://inspectordetector.mnalavadi.org", "description": "Gute Schwartzfahrt!"},
-        {"name": "Trace", "url": "https://trace.mnalavadi.org", "description": "GPS Tracker"},
+        {
+            "name": "energyMonitor",
+            "url": "https://energy-monitor.mnalavadi.org",
+            "description": "Energy Monitor",
+            "icon": "⚡️",
+        },
+        {
+            "name": "pingpong",
+            "url": "https://pingpong.mnalavadi.org",
+            "description": "Shared Expense Tracker",
+            "icon": "🏓",
+        },
+        {
+            "name": "USC-vis",
+            "url": "https://usc-vis.mnalavadi.org/mobile",
+            "description": "USC checkin visualizer",
+            "icon": "💪🏾",
+        },
+        {
+            "name": "trainspotter",
+            "url": "https://trainspotter.mnalavadi.org",
+            "description": "Spot when the next train comes!",
+            "icon": "🚃",
+        },
+        {
+            "name": "inspectordetector",
+            "url": "https://inspectordetector.mnalavadi.org",
+            "description": "Gute Schwarzfahrt!",
+            "icon": "🚨",
+        },
+        {"name": "Trace", "url": "https://trace.mnalavadi.org", "description": "GPS Tracker", "icon": "📍"},
     ]
+    websites.sort(key=lambda x: x["name"].lower())
 
     # Get detailed info for selected service if one is selected
     service_info = get_service_info(service) if service else ""
 
     return render_template(
-        "index.html", 
-        services=service_statuses, 
-        current=service, 
-        service_info=service_info,
-        websites=websites
+        "index.html", services=service_statuses, current=service, service_info=service_info, websites=websites
     )
 
 
