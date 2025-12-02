@@ -1,7 +1,26 @@
-## Raspberry Pi setup notes
-because I have to go through this too many times
+# Raspberry Pi Setup Notes
 
-### Headless SSH:
+Personal notes for Raspberry Pi setup and configuration. Because I have to look this up every time.
+
+## Contents
+
+- [SSH Setup](#ssh-setup)
+- [Conda Installation](#conda-installation)
+- [System Updates](#system-updates)
+- [Shell Configuration](#shell-configuration)
+- [Git Authentication](#git-authentication)
+- [SystemD Services](#systemd-services)
+- [Rsync](#rsync)
+- [Cloudflare Tunnel](#cloudflare-tunnel)
+- [Other Tips](#other-tips)
+
+> **See also:** [README.servicemonitor.md](README.servicemonitor.md) - Technical spec for the Service Monitor dashboard app
+
+---
+
+## SSH Setup
+
+### Headless SSH (first boot)
 - create the ssh file in the Pi SD card:
 ```bash
 mkdir /Volumes/system-boot/boot
@@ -17,7 +36,7 @@ nmap -sn 192.168.0.0/24
 Assuming IP is `192.168.0.184`
 - SSH: `ssh mnalavadi@192.168.0.184`
 
-### Enable SSH & Password Authentication for root
+### Enable Root Login & Password Auth
 set new password for root:
 ```bash
 sudo passwd root
@@ -33,7 +52,7 @@ restart SSH: `sudo systemctl restart ssh`
 
 SSH: `ssh root@192.168.0.184`
 
-### Use RSA Keys for SSH authentication (no more password!):
+### SSH Keys (passwordless login)
 - make RSA keys on computer A.
    -  should have them already. Check if file `/Users/mnalavadi/.ssh/id_rsa.pub` exists. Skip step if so.
    - else: `ssh-keygen -t rsa`
@@ -41,7 +60,9 @@ SSH: `ssh root@192.168.0.184`
 - dump computer A public keys into auth folder on Pi:
    - `cat /Users/mnalavadi/.ssh/id_rsa.pub | ssh mnalavadi@192.168.0.184 'cat >> .ssh/authorized_keys'`
 
-### Download and install latest Conda:
+---
+
+## Conda Installation
 
 note: do this on a laptop then scp to Pi
 note: run `-b` to skip license agreement
@@ -50,14 +71,23 @@ note: run `-b` to skip license agreement
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh
 bash Miniconda3-latest-Linux-aarch64.sh -b
 ~/miniconda3/bin/conda init
+
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 ```
 
-### Basic updates & software
+---
+
+## System Updates
 See `update_system.sh`
 
-[update python version](https://stackoverflow.com/questions/64718274/how-to-update-python-in-raspberry-pi)
+[Update Python version](https://stackoverflow.com/questions/64718274/how-to-update-python-in-raspberry-pi)
 
-### useful aliases and env vars
+---
+
+## Shell Configuration
+
+### Aliases
 - add to `nano ~/.bashrc`
 ```
 alias c=clear
@@ -72,19 +102,21 @@ alias sourcebash='source ~/.bashrc'
 alias sd='conda deactivate'
 alias ca='conda activate'
 
-alias train_tracker="sd && ca train_tracker && cd /home/mnalavadi/train_tracker"
-alias bathroom_button="sd && ca bathroom_button && cd /home/mnalavadi/bathroom_button"
 alias gps="sd && ca incognita && cd /home/mnalavadi/incognita"
 ```
 
-### Authenticate Git (no password needed on pushes!)
+---
+
+## Git Authentication
+
+### Quick Way (copy from local machine)
 the short way:
 ```
 scp ~/.gitconfig mnalavadi@192.168.0.184:/home/mnalavadi/.gitconfig
 scp ~/.git-credentials mnalavadi@192.168.0.184:/home/mnalavadi/.git-credentials
 ```
 
-Or the long way...
+### Manual Setup
 - `nano ~/.gitconfig`
 ```
 [user]
@@ -102,10 +134,13 @@ Or the long way...
 [credential]
 	helper = store
 ```
-- copy auth line from computer A to pi `nano ~/.git-credentials`
- 
+- Copy auth token from local machine: `nano ~/.git-credentials`
+
 ---
-### SystemD:
+
+## SystemD Services
+
+### Create a Service
 - create file: `/lib/systemd/system/<SERVICE_NAME>.service`
   
 ```
@@ -123,7 +158,7 @@ Or the long way...
  WantedBy=multi-user.target
 ```
 
-- Start the services
+### Enable & Start
 ```
 sudo chmod 644 /lib/systemd/system/<SERVICE_NAME>.service
 
@@ -135,35 +170,49 @@ sudo systemctl enable <SERVICE_NAME>.service
 sudo reboot
 ```
 
-- View logs
+### View Logs
 ```
 journalctl -u <SERVICE_NAME>.service
 -f [to follow]
 -r [reverse order]
 ```
 
-### Rysnc:
+---
+
+## Rsync
 sync computer --> pi
 - `rsync -avu . mnalavadi@192.168.0.184:<PI_DIRECTORY/>`
 
 sync pi --> computer
 - `rsync -avu mnalavadi@192.168.0.184:<PI_DIRECTORY/> .`
 
-### Other:
-#### Mount a USB drive:
+---
+
+## Cloudflare Tunnel
+
+See [cloudflared/README.md](cloudflared/README.md)
+
+---
+
+## Other Tips
+
+### Mount a USB Drive
 - https://raspberrytips.com/mount-usb-drive-raspberry-pi/
 
-#### Setup Networked Drive:
+### Samba (Networked Drive)
+
 - https://pimylifeup.com/raspberry-pi-samba/
 
-#### Notes
-- note: you can run jupyter on the PI but interact on another computer by setting the host:
-  - ` jupyter notebook --ip 192.168.0.184`
+### Remote Jupyter
 
-  ### CloudFlare
-  See [here](cloudflared/README.md)
-  
-  ### Disable ipv6
+Run Jupyter on Pi, access from another machine:
+```bash
+jupyter notebook --ip 192.168.0.184
+```
 
+### Disable IPv6
+
+```bash
 sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
 sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
+```
