@@ -155,14 +155,14 @@ def index():
     # Get status for all services
     service_statuses = [get_service_status(svc) for svc in services]
 
-    # Define website links
+    # Website links with icons (icon mapping centralized here, not in template)
     websites = [
-        {"name": "energyMonitor", "url": "https://energy-monitor.mnalavadi.org", "description": "Energy Monitor"},
-        {"name": "pingpong", "url": "https://pingpong.mnalavadi.org", "description": "Shared Expense Trakcer"},
-        {"name": "USC-vis", "url": "https://usc-vis.mnalavadi.org/mobile", "description": "USC checkin visualizer"},
-        {"name": "trainspotter", "url": "https://trainspotter.mnalavadi.org", "description": "spot when the next train comes!"},
-        {"name": "inspectordetector", "url": "https://inspectordetector.mnalavadi.org", "description": "Gute Schwartzfahrt!"},
-        {"name": "Trace", "url": "https://trace.mnalavadi.org", "description": "GPS Tracker"},
+        {"name": "energyMonitor", "url": "https://energy-monitor.mnalavadi.org", "description": "Energy Monitor", "icon": "⚡️"},
+        {"name": "pingpong", "url": "https://pingpong.mnalavadi.org", "description": "Shared Expense Tracker", "icon": "🏓"},
+        {"name": "USC-vis", "url": "https://usc-vis.mnalavadi.org/mobile", "description": "USC checkin visualizer", "icon": "💪🏾"},
+        {"name": "trainspotter", "url": "https://trainspotter.mnalavadi.org", "description": "Spot when the next train comes!", "icon": "🚃"},
+        {"name": "inspectordetector", "url": "https://inspectordetector.mnalavadi.org", "description": "Gute Schwarzfahrt!", "icon": "🕵️"},
+        {"name": "Trace", "url": "https://trace.mnalavadi.org", "description": "GPS Tracker", "icon": "📍"},
     ]
 
     # Get detailed info for selected service if one is selected
