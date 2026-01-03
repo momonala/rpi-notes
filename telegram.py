@@ -1,12 +1,12 @@
 import logging
 
 import requests
-
-from services import ServiceStatus
 from values import telegram_api_token
 from values import telegram_chat_id
 
-MAX_STATUS_LENGTH = 4096-500  # Telegram limit is 4096, leave room for message template
+from services import ServiceStatus
+
+MAX_STATUS_LENGTH = 4096 - 500  # Telegram limit is 4096, leave room for message template
 
 
 def report_error_to_telegram(service_status: ServiceStatus) -> None:

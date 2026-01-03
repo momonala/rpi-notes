@@ -111,6 +111,12 @@ def index():
             "description": "Gute Schwarzfahrt!",
             "icon": "🚨",
         },
+                {
+            "name": "iOS Health Dump",
+            "url": "https://ios-health-dump.mnalavadi.org",
+            "description": "Data from iOS Health app",
+            "icon": "⚕️",
+        },
         {"name": "Trace", "url": "https://trace.mnalavadi.org", "description": "GPS Tracker", "icon": "📍"},
     ]
     websites.sort(key=lambda x: x["name"].lower())

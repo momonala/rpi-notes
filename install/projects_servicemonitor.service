@@ -3,9 +3,9 @@
  After=multi-user.target
 
  [Service]
- WorkingDirectory=/home/mnalavadi/rpi-notes
+ WorkingDirectory=/home/mnalavadi/rpi-home-server
  Type=idle
- ExecStart=/home/mnalavadi/miniconda3/envs/servicemonitor/bin/python app.py
+ ExecStart=/home/mnalavadi/.local/bin/uv run app.py
  User=mnalavadi
 
  [Install]

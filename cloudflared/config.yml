@@ -2,6 +2,8 @@ tunnel: raspberrypi-tunnel
 credentials-file: /home/mnalavadi/.cloudflared/raspberrypi-tunnel.json
 
 ingress:
+  - hostname: servicemonitor.mnalavadi.org
+    service: http://localhost:5001
   - hostname: inspectordetector.mnalavadi.org
     service: http://localhost:5002
   - hostname: trace.mnalavadi.org
@@ -12,5 +14,10 @@ ingress:
     service: http://localhost:5005
   - hostname: usc-vis.mnalavadi.org
     service: http://localhost:5006
+  - hostname: trainspotter.mnalavadi.org
+    service: http://localhost:5007
+  - hostname: energy-monitor.mnalavadi.org
+    service: http://localhost:5008
+  - hostname: ios-health-dump.mnalavadi.org
+    service: http://localhost:5009
   - service: http_status:404
-  

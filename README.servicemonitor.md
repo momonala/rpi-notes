@@ -42,7 +42,7 @@ flowchart LR
 ## Prerequisites
 
 - Python 3.12+
-- Miniconda/Conda
+- uv (Python package manager)
 - systemd (Linux)
 - `sudo` access for service restarts
 - Cloudflared (for external access)
@@ -51,7 +51,7 @@ flowchart LR
 
 1. Clone the repository:
    ```bash
-   cd ~/rpi-notes
+   cd ~/rpi-home-server
    ```
 
 2. Run the install script:
@@ -61,8 +61,8 @@ flowchart LR
    ```
 
    This will:
-   - Create conda environment `servicemonitor`
-   - Install dependencies via Poetry
+   - Install uv (Python package manager) if not already installed
+   - Install project dependencies with uv
    - Install systemd service file
    - Configure Cloudflared tunnel
 
@@ -81,8 +81,7 @@ sudo systemctl start projects_servicemonitor.service
 
 **Manual (development):**
 ```bash
-conda activate servicemonitor
-python app.py
+uv run app.py
 ```
 
 **Default URL:** `http://localhost:5001`  
@@ -91,9 +90,9 @@ python app.py
 ## Project Structure
 
 ```
-rpi-notes/
+rpi-home-server/
 ├── app.py                              # Flask app, all routes and business logic
-├── pyproject.toml                      # Poetry dependencies
+├── pyproject.toml                      # Project dependencies (uv)
 ├── install/
 │   ├── install.sh                      # Full setup script
 │   └── projects_servicemonitor.service # systemd unit file
@@ -187,9 +186,9 @@ Description=Service Monitor
 After=multi-user.target
 
 [Service]
-WorkingDirectory=/home/mnalavadi/rpi-notes
+WorkingDirectory=/home/mnalavadi/rpi-home-server
 Type=idle
-ExecStart=/home/mnalavadi/miniconda3/envs/servicemonitor/bin/python app.py
+ExecStart=/home/mnalavadi/.local/bin/uv run app.py
 User=mnalavadi
 
 [Install]
@@ -207,7 +206,6 @@ WantedBy=multi-user.target
 
 ## Known Limitations
 
-- Hardcoded paths to conda environments (`/home/mnalavadi/miniconda3/...`)
 - Train tracker check endpoint is hardcoded to specific service and path
 - No authentication on web interface
 - Requires sudo for restart functionality (must configure sudoers)
