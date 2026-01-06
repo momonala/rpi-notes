@@ -52,7 +52,8 @@ def train_tracker_check():
         return "Invalid service", 400
 
     cmd = [
-        "/home/mnalavadi/miniconda3/envs/train_tracker/bin/python",
+        "/home/mnalavadi/.local/bin/uv",
+        "run",
         "-m",
         "scripts.check_inspections",
     ]
@@ -95,7 +96,7 @@ def index():
         },
         {
             "name": "USC-vis",
-            "url": "https://usc-vis.mnalavadi.org/mobile",
+            "url": "https://usc-vis.mnalavadi.org",
             "description": "USC checkin visualizer",
             "icon": "💪🏾",
         },
