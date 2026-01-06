@@ -59,7 +59,7 @@ def service_health_check():
 def schedule_loop():
     """Schedule the periodic tasks."""
     schedule.every().hour.at(":00").do(service_health_check)
-    logger.info(f"Scheduled hourly service health check")
+    logger.info("Scheduled hourly service health check")
     while True:
         schedule.run_pending()
         time.sleep(1)

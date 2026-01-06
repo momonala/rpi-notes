@@ -11,6 +11,13 @@ dependencies = [
     "flask>=3.0.0",
     "schedule>=1.0.0",
     "requests",
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+    "black",
+    "jupyter>=1.1.1",
+    "notebook>=7.5.1",
+    "pandas>=2.3.3",
+    "ruff>=0.14.10",
 ]
 
 [build-system]
@@ -19,15 +26,6 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["."]
-
-[project.optional-dependencies]
-dev = [
-    "black>=24.0",
-    "isort>=5.13",
-    "vulture>=2.11",
-    "mypy>=1.11",
-    "pytest>=8.0",
-]
 
 [tool.black]
 line-length = 110
@@ -41,10 +39,20 @@ warn_unused_configs = true
 disallow_untyped_defs = true
 check_untyped_defs = true
 
-[tool.isort]
-force_single_line = true
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-v"
+addopts = "-v --cov=. --cov-report=term-missing"
+
+[tool.coverage.run]
+omit = ["tests/*", "*/test_*.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]

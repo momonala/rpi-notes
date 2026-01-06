@@ -3,6 +3,7 @@
 /tmp
 /prototyping
 .vscode/
+.coverage
 
 # code generated/large files
 *.db
