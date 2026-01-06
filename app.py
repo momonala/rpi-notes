@@ -111,7 +111,7 @@ def index():
             "description": "Gute Schwarzfahrt!",
             "icon": "🚨",
         },
-                {
+        {
             "name": "iOS Health Dump",
             "url": "https://ios-health-dump.mnalavadi.org",
             "description": "Data from iOS Health app",
