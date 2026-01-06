@@ -13,7 +13,6 @@ else
 fi
 
 echo "✅ Installing project dependencies with uv"
-# cd /home/mnalavadi/rpi-home-server
 uv sync
 
 echo "✅ Copying service file to systemd directory"

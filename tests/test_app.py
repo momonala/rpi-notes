@@ -163,7 +163,8 @@ def test_train_tracker_check_success(client):
         assert response.status_code == 302  # Redirect
         mock_run.assert_called_once_with(
             [
-                "/home/mnalavadi/miniconda3/envs/train_tracker/bin/python",
+                "/home/mnalavadi/.local/bin/uv",
+                "run",
                 "-m",
                 "scripts.check_inspections",
             ],
