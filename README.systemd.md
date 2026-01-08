@@ -40,3 +40,5 @@ journalctl -u <SERVICE_NAME>.service
 -r [reverse order]
 ```
 
+
+
