@@ -83,16 +83,16 @@ def index():
     # Website links with icons (icon mapping centralized here, not in template)
     websites = [
         {
+            "name": "task-manager",
+            "url": "https://task-manager.mnalavadi.org",
+            "description": "Task Manager",
+            "icon": "📝",
+        },
+        {
             "name": "energyMonitor",
             "url": "https://energy-monitor.mnalavadi.org",
             "description": "Energy Monitor",
             "icon": "⚡️",
-        },
-        {
-            "name": "pingpong",
-            "url": "https://pingpong.mnalavadi.org",
-            "description": "Shared Expense Tracker",
-            "icon": "🏓",
         },
         {
             "name": "USC-vis",
@@ -117,6 +117,12 @@ def index():
             "url": "https://ios-health-dump.mnalavadi.org",
             "description": "Data from iOS Health app",
             "icon": "⚕️",
+        },
+        {
+            "name": "pingpong",
+            "url": "https://pingpong.mnalavadi.org",
+            "description": "Shared Expense Tracker",
+            "icon": "🏓",
         },
         {"name": "Trace", "url": "https://trace.mnalavadi.org", "description": "GPS Tracker", "icon": "📍"},
     ]
