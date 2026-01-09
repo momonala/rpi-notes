@@ -1,21 +1,19 @@
 import logging
+import os
 import subprocess
 
-from flask import Flask
-from flask import redirect
-from flask import render_template
-from flask import request
-from flask import url_for
+from flask import Flask, redirect, render_template, request, url_for
 
-from scheduler import start_threads
-from services import get_service_info
-from services import get_service_status
-from services import get_services
+from src.scheduler import start_threads
+from src.services import get_service_info, get_service_status, get_services
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__)
+
+template_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
+static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 
 
 @app.route("/restart", methods=["POST"])
@@ -136,6 +134,10 @@ def index():
     )
 
 
-if __name__ == "__main__":
+def main():
     start_threads()
     app.run(host="0.0.0.0", port=5001, debug=True)
+
+
+if __name__ == "__main__":
+    main()

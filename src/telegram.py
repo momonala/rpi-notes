@@ -1,10 +1,9 @@
 import logging
 
 import requests
-from values import telegram_api_token
-from values import telegram_chat_id
 
-from services import ServiceStatus
+from src.services import ServiceStatus
+from src.values import telegram_api_token, telegram_chat_id
 
 MAX_STATUS_LENGTH = 4096 - 500  # Telegram limit is 4096, leave room for message template
 

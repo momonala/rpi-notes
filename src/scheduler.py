@@ -5,9 +5,8 @@ from datetime import datetime
 
 import schedule
 
-from services import get_service_status
-from services import get_services
-from telegram import report_error_to_telegram
+from src.services import get_service_status, get_services
+from src.telegram import report_error_to_telegram
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)

@@ -1,12 +1,11 @@
 """Tests for app.py Flask application."""
 
 import subprocess
-from unittest.mock import MagicMock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from app import app
+from src.app import app
 
 
 @pytest.fixture
@@ -26,9 +25,9 @@ def mock_services():
 def test_index_get_no_service(client, mock_services):
     """Test index route without service parameter."""
     with (
-        patch("app.get_services", return_value=mock_services),
-        patch("app.get_service_status") as mock_status,
-        patch("app.get_service_info", return_value=""),
+        patch("src.app.get_services", return_value=mock_services),
+        patch("src.app.get_service_status") as mock_status,
+        patch("src.app.get_service_info", return_value=""),
     ):
         mock_status.side_effect = lambda svc: MagicMock(
             name=svc,
@@ -49,9 +48,9 @@ def test_index_get_no_service(client, mock_services):
 def test_index_get_with_service(client, mock_services):
     """Test index route with service parameter."""
     with (
-        patch("app.get_services", return_value=mock_services),
-        patch("app.get_service_status") as mock_status,
-        patch("app.get_service_info", return_value="Service info output") as mock_info,
+        patch("src.app.get_services", return_value=mock_services),
+        patch("src.app.get_service_status") as mock_status,
+        patch("src.app.get_service_info", return_value="Service info output") as mock_info,
     ):
         mock_status.side_effect = lambda svc: MagicMock(
             name=svc,
@@ -72,9 +71,9 @@ def test_index_get_with_service(client, mock_services):
 def test_index_websites_present(client, mock_services):
     """Test that websites are included in the response."""
     with (
-        patch("app.get_services", return_value=mock_services),
-        patch("app.get_service_status") as mock_status,
-        patch("app.get_service_info", return_value=""),
+        patch("src.app.get_services", return_value=mock_services),
+        patch("src.app.get_service_status") as mock_status,
+        patch("src.app.get_service_info", return_value=""),
     ):
         mock_status.side_effect = lambda svc: MagicMock(
             name=svc,
@@ -94,7 +93,10 @@ def test_index_websites_present(client, mock_services):
 
 def test_restart_service_success(client, mock_services):
     """Test restarting a service successfully."""
-    with patch("app.get_services", return_value=mock_services), patch("app.subprocess.run") as mock_run:
+    with (
+        patch("src.app.get_services", return_value=mock_services),
+        patch("src.app.subprocess.run") as mock_run,
+    ):
         mock_run.return_value = MagicMock(returncode=0)
 
         response = client.post("/restart", data={"service": "projects_test1.service"}, follow_redirects=False)
@@ -110,7 +112,7 @@ def test_restart_service_success(client, mock_services):
 
 def test_restart_service_invalid_service(client, mock_services):
     """Test restarting an invalid service."""
-    with patch("app.get_services", return_value=mock_services):
+    with patch("src.app.get_services", return_value=mock_services):
         response = client.post("/restart", data={"service": "invalid_service.service"})
 
         assert response.status_code == 400
@@ -119,7 +121,7 @@ def test_restart_service_invalid_service(client, mock_services):
 
 def test_restart_service_missing_service_param(client, mock_services):
     """Test restarting without service parameter."""
-    with patch("app.get_services", return_value=mock_services):
+    with patch("src.app.get_services", return_value=mock_services):
         response = client.post("/restart", data={})
 
         assert response.status_code == 400
@@ -128,7 +130,10 @@ def test_restart_service_missing_service_param(client, mock_services):
 
 def test_restart_service_subprocess_failure(client, mock_services):
     """Test restarting when subprocess fails."""
-    with patch("app.get_services", return_value=mock_services), patch("app.subprocess.run") as mock_run:
+    with (
+        patch("src.app.get_services", return_value=mock_services),
+        patch("src.app.subprocess.run") as mock_run,
+    ):
         mock_error = subprocess.CalledProcessError(1, "sudo", stderr="Permission denied")
         mock_run.side_effect = mock_error
 
@@ -140,7 +145,7 @@ def test_restart_service_subprocess_failure(client, mock_services):
 
 def test_restart_service_get_services_exception(client):
     """Test restart when get_services raises an exception."""
-    with patch("app.get_services", side_effect=Exception("System error")):
+    with patch("src.app.get_services", side_effect=Exception("System error")):
         response = client.post("/restart", data={"service": "projects_test1.service"})
 
         assert response.status_code == 500
@@ -149,7 +154,7 @@ def test_restart_service_get_services_exception(client):
 
 def test_train_tracker_check_success(client):
     """Test train tracker check successfully."""
-    with patch("app.subprocess.run") as mock_run:
+    with patch("src.app.subprocess.run") as mock_run:
         mock_result = MagicMock()
         mock_result.returncode = 0
         mock_result.stdout = "Check completed"
@@ -193,7 +198,7 @@ def test_train_tracker_check_missing_service(client):
 
 def test_train_tracker_check_subprocess_failure(client):
     """Test train tracker check when subprocess fails."""
-    with patch("app.subprocess.run") as mock_run:
+    with patch("src.app.subprocess.run") as mock_run:
         mock_error = subprocess.CalledProcessError(1, "python", stderr="Script failed")
         mock_run.side_effect = mock_error
 
@@ -205,7 +210,7 @@ def test_train_tracker_check_subprocess_failure(client):
 
 def test_train_tracker_check_with_stderr(client):
     """Test train tracker check with stderr output."""
-    with patch("app.subprocess.run") as mock_run:
+    with patch("src.app.subprocess.run") as mock_run:
         mock_result = MagicMock()
         mock_result.returncode = 0
         mock_result.stdout = "Check completed"

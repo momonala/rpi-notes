@@ -81,7 +81,7 @@ sudo systemctl start projects_servicemonitor.service
 
 **Manual (development):**
 ```bash
-uv run app.py
+uv run src/app.py
 ```
 
 **Default URL:** `http://localhost:5001`  
@@ -91,15 +91,23 @@ uv run app.py
 
 ```
 rpi-home-server/
-├── app.py                              # Flask app, all routes and business logic
-├── pyproject.toml                      # Project dependencies (uv)
-├── install/
-│   ├── install.sh                      # Full setup script
-│   └── projects_servicemonitor.service # systemd unit file
+├── src/
+│   ├── app.py                          # Flask app, all routes and business logic
+│   ├── services.py                     # Service status management
+│   ├── scheduler.py                    # Background health check scheduler
+│   ├── telegram.py                     # Telegram error notifications
+│   └── values.py                       # Configuration values
 ├── templates/
 │   └── index.html                      # Main dashboard template (Jinja2)
 ├── static/
-│   └── style.css                       # CSS (unused, TailwindCSS via CDN)
+│   └── app.css                         # CSS (TailwindCSS via CDN)
+├── tests/
+│   ├── test_app.py                     # Flask app tests
+│   └── test_services.py                # Services module tests
+├── install/
+│   ├── install.sh                      # Full setup script
+│   └── projects_servicemonitor.service # systemd unit file
+├── pyproject.toml                      # Project dependencies (uv)
 └── cloudflared/
     └── config.yml                      # Cloudflared tunnel config
 ```
@@ -172,9 +180,11 @@ ServiceStatus
 
 | Variable | Location | Default | Description |
 |----------|----------|---------|-------------|
-| `host` | `app.py` | `0.0.0.0` | Bind address |
-| `port` | `app.py` | `5001` | HTTP port |
-| `service_pattern` | `app.py` | `projects_*` | systemctl filter pattern (hardcoded) |
+| `host` | `src/app.py` | `0.0.0.0` | Bind address |
+| `port` | `src/app.py` | `5001` | HTTP port |
+| `service_pattern` | `src/services.py` | `projects_*` | systemctl filter pattern (hardcoded) |
+| `telegram_api_token` | `src/values.py` | - | Telegram bot API token |
+| `telegram_chat_id` | `src/values.py` | - | Telegram chat ID for notifications |
 
 ## Deployment
 
@@ -188,7 +198,7 @@ After=multi-user.target
 [Service]
 WorkingDirectory=/home/mnalavadi/rpi-home-server
 Type=idle
-ExecStart=/home/mnalavadi/.local/bin/uv run app.py
+ExecStart=/home/mnalavadi/.local/bin/uv run src/app.py
 User=mnalavadi
 
 [Install]
