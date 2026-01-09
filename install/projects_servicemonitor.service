@@ -5,7 +5,7 @@
  [Service]
  WorkingDirectory=/home/mnalavadi/rpi-home-server
  Type=idle
- ExecStart=/home/mnalavadi/.local/bin/uv run app.py
+ ExecStart=/home/mnalavadi/.local/bin/uv run src/app.py
  User=mnalavadi
 
  [Install]
