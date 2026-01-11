@@ -5,10 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#181c20">
+    <meta name="theme-color" content="#000000">
     <title>Service Monitor</title>
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+    
+    <!-- Performance optimizations -->
+    <link rel="preconnect" href="{{ url_for('static', filename='') }}">
+    
+    <!-- Critical CSS for instant first paint -->
+    <style>
+        :root{--color-bg-primary:#000;--color-bg-secondary:#1c1c1e;--color-text-primary:#fff}
+        body{background:var(--color-bg-primary);color:var(--color-text-primary);margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+        .app-container{display:flex;min-height:100vh}
+        .sidebar{background:var(--color-bg-secondary)}
+        .hidden{display:none!important}
+    </style>
+    
+    <!-- Load full CSS async -->
+    <link rel="preload" href="{{ url_for('static', filename='app.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}"></noscript>
 </head>
 <body>
     <!-- SVG Icon Definitions (reusable) -->
@@ -48,11 +63,27 @@
                 </button>
             </header>
             
+            <!-- Status Summary -->
+            <div class="status-summary">
+                <div class="status-summary__item">
+                    <span class="status-indicator status-indicator--active"></span>
+                    <span>{{ services|selectattr('is_active')|list|length }} Active</span>
+                </div>
+                <div class="status-summary__item">
+                    <span class="status-indicator status-indicator--failed"></span>
+                    <span>{{ services|selectattr('is_failed')|list|length }} Failed</span>
+                </div>
+            </div>
+            
+            <!-- Search Services -->
+            <div class="sidebar__search">
+                <input type="text" id="serviceSearch" placeholder="Search services..." aria-label="Search services">
+            </div>
+            
             <nav class="sidebar__nav">
                 {% for svc in services %}
                 <div class="service-item {% if svc.name == current %}service-item--active{% endif %}" 
-                     data-project-group="{{ svc.project_group }}"
-                     style="--project-color: {{ svc.project_color }};">
+                     data-project-group="{{ svc.project_group }}">
                     <a href="?service={{ svc.name }}" class="service-link">
                         <span class="status-indicator {% if svc.is_active %}status-indicator--active{% elif svc.is_failed %}status-indicator--failed{% else %}status-indicator--inactive{% endif %}" 
                               aria-label="{% if svc.is_active %}Active{% elif svc.is_failed %}Failed{% else %}Inactive{% endif %}"></span>
@@ -87,15 +118,15 @@
                     {% if current %}{{ current }}{% else %}Dashboard{% endif %}
                 </h1>
                 <div class="content-header__actions">
-                    {% if service_info and current %}
+                    {% if selected_service_info and current %}
                     <form method="POST" action="/restart" onsubmit="return confirm('Restart {{ current }}?');">
                         <input type="hidden" name="service" value="{{ current }}">
-                        <button type="submit" class="btn btn--danger">Restart</button>
+                        <button type="submit" class="btn btn--danger" data-loading-text="Restarting...">Restart</button>
                     </form>
                     {% if current == 'projects_train_tracker.service' %}
                     <form method="POST" action="/train-tracker/check" onsubmit="return confirm('Run check_inspections now?');">
                         <input type="hidden" name="service" value="{{ current }}">
-                        <button type="submit" class="btn btn--warning">Check Inspections</button>
+                        <button type="submit" class="btn btn--warning" data-loading-text="Checking...">Check Inspections</button>
                     </form>
                     {% endif %}
                     {% endif %}
@@ -103,7 +134,7 @@
             </header>
 
             <div class="content-body">
-                {% if service_info %}
+                {% if selected_service_info %}
                 <!-- Service Detail View -->
                 <div class="service-info-panel">
                     <pre class="service-info">{{ service_info }}</pre>
@@ -130,6 +161,12 @@
         </main>
     </div>
 
-    <script src="{{ url_for('static', filename='app.js') }}"></script>
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" style="position:fixed;top:1rem;right:1rem;z-index:9999;pointer-events:none;"></div>
+    
+    <!-- Accessibility Live Region -->
+    <div aria-live="polite" aria-atomic="true" class="sr-only" id="statusAnnouncer"></div>
+
+    <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </body>
 </html>

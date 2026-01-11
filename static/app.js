@@ -20,6 +20,12 @@
         
         // Local storage keys
         STORAGE_SIDEBAR_COLLAPSED: 'servicemonitor:sidebar-collapsed',
+        
+        // Auto-refresh interval (30 seconds)
+        AUTO_REFRESH_INTERVAL: 30000,
+        
+        // Toast duration (ms)
+        TOAST_DURATION: 3000,
     };
 
     const CSS_CLASSES = {
@@ -39,6 +45,9 @@
         sidebarClose: document.getElementById('sidebarClose'),
         mobileHamburger: document.getElementById('mobileHamburger'),
         sidebarOverlay: document.getElementById('sidebarOverlay'),
+        serviceSearch: document.getElementById('serviceSearch'),
+        toastContainer: document.getElementById('toastContainer'),
+        statusAnnouncer: document.getElementById('statusAnnouncer'),
     };
 
     // ============================================
@@ -52,6 +61,46 @@
     // ============================================
     // Utility Functions
     // ============================================
+    
+    /**
+     * Generate consistent color for a project group using golden ratio hashing
+     * @param {string} projectGroup - The project group name
+     * @returns {string} Hex color code
+     */
+    function getProjectColor(projectGroup) {
+        // Simple hash function
+        let hash = 0;
+        for (let i = 0; i < projectGroup.length; i++) {
+            hash = ((hash << 5) - hash) + projectGroup.charCodeAt(i);
+            hash = hash & hash; // Convert to 32-bit integer
+        }
+        
+        // Use golden ratio for hue distribution
+        const hue = ((Math.abs(hash) % 1000) * 0.618033988749895) % 1.0;
+        
+        // Convert HSV to RGB (S=0.75, V=0.95)
+        const s = 0.75;
+        const v = 0.95;
+        const c = v * s;
+        const x = c * (1 - Math.abs(((hue * 6) % 2) - 1));
+        const m = v - c;
+        
+        let r, g, b;
+        const h = hue * 6;
+        if (h < 1) { r = c; g = x; b = 0; }
+        else if (h < 2) { r = x; g = c; b = 0; }
+        else if (h < 3) { r = 0; g = c; b = x; }
+        else if (h < 4) { r = 0; g = x; b = c; }
+        else if (h < 5) { r = x; g = 0; b = c; }
+        else { r = c; g = 0; b = x; }
+        
+        const toHex = (n) => {
+            const val = Math.round((n + m) * 255);
+            return val.toString(16).padStart(2, '0');
+        };
+        
+        return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    }
     
     /**
      * Get current device type based on viewport width
@@ -96,6 +145,56 @@
         }
     }
 
+    /**
+     * Show toast notification
+     * @param {string} message
+     * @param {'success'|'error'|'info'} type
+     */
+    function showToast(message, type = 'success') {
+        if (!elements.toastContainer) return;
+        
+        const icons = {
+            success: '✓',
+            error: '✕',
+            info: 'ℹ'
+        };
+        
+        const titles = {
+            success: 'Success',
+            error: 'Error',
+            info: 'Info'
+        };
+        
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.innerHTML = `
+            <span class="toast-icon">${icons[type]}</span>
+            <div class="toast-content">
+                <div class="toast-title">${titles[type]}</div>
+                <div class="toast-message">${message}</div>
+            </div>
+            <button class="toast-close" aria-label="Close notification">×</button>
+        `;
+        
+        const closeBtn = toast.querySelector('.toast-close');
+        closeBtn.addEventListener('click', () => toast.remove());
+        
+        elements.toastContainer.appendChild(toast);
+        
+        setTimeout(() => toast.classList.add('toast-exit'), CONFIG.TOAST_DURATION);
+        setTimeout(() => toast.remove(), CONFIG.TOAST_DURATION + 300);
+    }
+
+    /**
+     * Announce status to screen readers
+     * @param {string} message
+     */
+    function announceStatus(message) {
+        if (!elements.statusAnnouncer) return;
+        elements.statusAnnouncer.textContent = message;
+        setTimeout(() => elements.statusAnnouncer.textContent = '', 1000);
+    }
+
     // ============================================
     // Sidebar Functions
     // ============================================
@@ -122,6 +221,9 @@
         
         // Prevent body scroll on mobile
         document.body.style.overflow = 'hidden';
+        
+        // Focus close button for accessibility
+        setTimeout(() => elements.sidebarClose?.focus(), 100);
     }
 
     /**
@@ -194,6 +296,148 @@
         
         // Restore body scroll
         document.body.style.overflow = '';
+    }
+
+    // ============================================
+    // Auto-Refresh Functions
+    // ============================================
+
+    /**
+     * Refresh service status without page reload
+     */
+    function refreshServiceStatus() {
+        fetch(window.location.href, { 
+            headers: { 'X-Requested-With': 'XMLHttpRequest' } 
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Failed to refresh');
+            return res.text();
+        })
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            // Update sidebar navigation
+            const newNav = doc.querySelector('.sidebar__nav');
+            const currentNav = document.querySelector('.sidebar__nav');
+            if (newNav && currentNav) {
+                currentNav.innerHTML = newNav.innerHTML;
+                applyProjectColors(); // Reapply colors after refresh
+            }
+            
+            // Update status summary
+            const newSummary = doc.querySelector('.status-summary');
+            const currentSummary = document.querySelector('.status-summary');
+            if (newSummary && currentSummary) {
+                currentSummary.innerHTML = newSummary.innerHTML;
+            }
+            
+            // Reapply search filter if active
+            const searchValue = elements.serviceSearch?.value;
+            if (searchValue) {
+                filterServices(searchValue);
+            }
+        })
+        .catch(err => {
+            console.error('⚠️ Status refresh failed:', err);
+        });
+    }
+
+    /**
+     * Start auto-refresh if on dashboard
+     */
+    function startAutoRefresh() {
+        // Only auto-refresh on dashboard (no service query param)
+        if (window.location.search.includes('service=')) return;
+        
+        setInterval(refreshServiceStatus, CONFIG.AUTO_REFRESH_INTERVAL);
+    }
+
+    // ============================================
+    // Search/Filter Functions
+    // ============================================
+
+    /**
+     * Filter services based on search query
+     * @param {string} query
+     */
+    function filterServices(query) {
+        const searchTerm = query.toLowerCase().trim();
+        const serviceItems = document.querySelectorAll('.service-item');
+        
+        let visibleCount = 0;
+        serviceItems.forEach(item => {
+            const serviceName = item.querySelector('.service-name')?.textContent.toLowerCase() || '';
+            const matches = serviceName.includes(searchTerm);
+            
+            item.classList.toggle('service-item--filtered', !matches);
+            if (matches) visibleCount++;
+        });
+        
+        announceStatus(`${visibleCount} service${visibleCount !== 1 ? 's' : ''} found`);
+    }
+
+    /**
+     * Setup search input handler
+     */
+    function setupSearch() {
+        if (!elements.serviceSearch) return;
+        
+        elements.serviceSearch.addEventListener('input', function(e) {
+            filterServices(e.target.value);
+        });
+    }
+
+    // ============================================
+    // Navigation Loading States
+    // ============================================
+
+    /**
+     * Show loading state when navigating to service details
+     */
+    function setupServiceNavigation() {
+        document.addEventListener('click', function(e) {
+            const serviceLink = e.target.closest('.service-link');
+            if (!serviceLink) return;
+            
+            // Add loading class to clicked service
+            const serviceItem = serviceLink.closest('.service-item');
+            if (serviceItem) {
+                serviceItem.style.opacity = '0.6';
+                serviceItem.style.pointerEvents = 'none';
+            }
+            
+            // Show loading announcement
+            const serviceName = serviceLink.querySelector('.service-name')?.textContent;
+            if (serviceName) {
+                announceStatus(`Loading ${serviceName}...`);
+            }
+        });
+    }
+
+    // ============================================
+    // Button Loading States
+    // ============================================
+
+    /**
+     * Setup loading states for form buttons
+     */
+    function setupButtonLoadingStates() {
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function() {
+                const btn = this.querySelector('button[type="submit"]');
+                if (!btn) return;
+                
+                btn.disabled = true;
+                btn.classList.add('btn--loading');
+                
+                const loadingText = btn.dataset.loadingText;
+                if (loadingText) {
+                    btn.dataset.originalText = btn.textContent;
+                    btn.textContent = loadingText;
+                }
+            });
+        });
     }
 
     // ============================================
@@ -292,15 +536,41 @@
     }
 
     // ============================================
+    // Project Colors
+    // ============================================
+
+    /**
+     * Apply project colors to all service items
+     */
+    function applyProjectColors() {
+        document.querySelectorAll('.service-item').forEach(item => {
+            const projectGroup = item.dataset.projectGroup;
+            if (projectGroup) {
+                const color = getProjectColor(projectGroup);
+                item.style.setProperty('--project-color', color);
+            }
+        });
+    }
+
+    // ============================================
     // Initialization
     // ============================================
 
     function init() {
         initializeSidebarState();
         setupEventListeners();
+        setupSearch();
+        setupButtonLoadingStates();
+        setupServiceNavigation();
+        applyProjectColors();
+        startAutoRefresh();
         
-        // Log device type for debugging (remove in production)
-        console.log('[ServiceMonitor] Initialized for device:', getDeviceType());
+        // Show welcome message on first load
+        const urlParams = new URLSearchParams(window.location.search);
+        if (!urlParams.has('service') && !sessionStorage.getItem('servicemonitor:welcomed')) {
+            sessionStorage.setItem('servicemonitor:welcomed', 'true');
+            announceStatus('Service Monitor loaded. ' + document.querySelectorAll('.service-item').length + ' services available.');
+        }
     }
 
     // Run on DOM ready

@@ -1,5 +1,5 @@
-import colorsys
 import logging
+import platform
 import re
 import subprocess
 from dataclasses import dataclass
@@ -19,7 +19,6 @@ class ServiceStatus:
     last_error: str | None
     full_status: str
     project_group: str
-    project_color: str
 
 
 def get_project_group(service_name: str) -> str:
@@ -32,10 +31,8 @@ def get_project_group(service_name: str) -> str:
     return name
 
 
-def get_project_color(project_group: str) -> str:
-    hue = ((hash(project_group) % 1000) * 0.618033988749895) % 1.0
-    r, g, b = colorsys.hsv_to_rgb(hue, 0.75, 0.95)
-    return f"#{int(r * 255):02x}{int(g * 255):02x}{int(b * 255):02x}"
+def is_linux():
+    return platform.system() == "Linux"
 
 
 def get_services():
@@ -66,7 +63,7 @@ def parse_last_error(status_text):
     return match.group(1).strip() if match else None
 
 
-def get_service_info(service: str) -> str:
+def get_info_for_service(service: str) -> str:
     result = subprocess.run(
         ["systemctl", "status", service, "--no-pager", "--lines=200"],
         text=True,
@@ -79,7 +76,7 @@ def get_service_info(service: str) -> str:
 
 
 def get_service_status(service):
-    status_text = get_service_info(service)
+    status_text = get_info_for_service(service)
     project_group = get_project_group(service)
     is_active = "active (running)" in status_text.lower()
 
@@ -93,5 +90,4 @@ def get_service_status(service):
         last_error=parse_last_error(status_text),
         full_status=status_text,
         project_group=project_group,
-        project_color=get_project_color(project_group),
     )

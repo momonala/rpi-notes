@@ -4,8 +4,9 @@ import subprocess
 
 from flask import Flask, redirect, render_template, request, url_for
 
+from src.canned_info import canned_service_statuses, websites
 from src.scheduler import start_threads
-from src.services import get_service_info, get_service_status, get_services
+from src.services import get_info_for_service, get_service_status, get_services, is_linux
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -21,16 +22,6 @@ def restart_service():
     """Restart a given service and redirect back to the index view."""
     service = request.form.get("service", "")
     try:
-        services = get_services()
-    except Exception as exc:
-        logger.exception("Failed to list services: %s", exc)
-        return "Failed to list services", 500
-
-    if service not in services:
-        logger.warning("Attempt to restart unknown or disallowed service: %s", service)
-        return "Invalid service", 400
-
-    try:
         # Requires appropriate sudoers configuration for the running user
         subprocess.run(["sudo", "systemctl", "restart", service], check=True, text=True, capture_output=True)
         logger.info("Successfully restarted service %s", service)
@@ -45,10 +36,6 @@ def restart_service():
 def train_tracker_check():
     """Run the train tracker inspections check command."""
     service = request.form.get("service", "")
-    if service != "projects_train_tracker.service":
-        logger.warning("Attempt to run train-tracker check for wrong service: %s", service)
-        return "Invalid service", 400
-
     cmd = [
         "/home/mnalavadi/.local/bin/uv",
         "run",
@@ -73,70 +60,27 @@ def train_tracker_check():
 @app.route("/")
 def index():
     service = request.args.get("service")
-    services = get_services()
-
-    # Get status for all services
-    service_statuses = [get_service_status(svc) for svc in services]
-
-    # Website links with icons (icon mapping centralized here, not in template)
-    websites = [
-        {
-            "name": "task-manager",
-            "url": "https://task-manager.mnalavadi.org",
-            "description": "Task Manager",
-            "icon": "📝",
-        },
-        {
-            "name": "energyMonitor",
-            "url": "https://energy-monitor.mnalavadi.org",
-            "description": "Energy Monitor",
-            "icon": "⚡️",
-        },
-        {
-            "name": "USC-vis",
-            "url": "https://usc-vis.mnalavadi.org",
-            "description": "USC checkin visualizer",
-            "icon": "💪🏾",
-        },
-        {
-            "name": "trainspotter",
-            "url": "https://trainspotter.mnalavadi.org",
-            "description": "Spot when the next train comes!",
-            "icon": "🚃",
-        },
-        {
-            "name": "inspectordetector",
-            "url": "https://inspectordetector.mnalavadi.org",
-            "description": "Gute Schwarzfahrt!",
-            "icon": "🚨",
-        },
-        {
-            "name": "iOS Health Dump",
-            "url": "https://ios-health-dump.mnalavadi.org",
-            "description": "Data from iOS Health app",
-            "icon": "⚕️",
-        },
-        {
-            "name": "pingpong",
-            "url": "https://pingpong.mnalavadi.org",
-            "description": "Shared Expense Tracker",
-            "icon": "🏓",
-        },
-        {"name": "Trace", "url": "https://trace.mnalavadi.org", "description": "GPS Tracker", "icon": "📍"},
-    ]
-    websites.sort(key=lambda x: x["name"].lower())
+    if is_linux():
+        services = get_services()
+        service_statuses = [get_service_status(svc) for svc in services]
+    else:
+        service_statuses = canned_service_statuses
 
     # Get detailed info for selected service if one is selected
-    service_info = get_service_info(service) if service else ""
+    selected_service_info = get_info_for_service(service) if service else ""
 
     return render_template(
-        "index.html", services=service_statuses, current=service, service_info=service_info, websites=websites
+        "index.html",
+        services=service_statuses,
+        current=service,
+        selected_service_info=selected_service_info,
+        websites=websites,
     )
 
 
 def main():
     start_threads()
-    app.run(host="0.0.0.0", port=5001, debug=True)
+    app.run(host="0.0.0.0", port=5001, debug=False)
 
 
 if __name__ == "__main__":
