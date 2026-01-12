@@ -18,6 +18,6 @@ ingress:
     service: http://localhost:5007
   - hostname: energy-monitor.mnalavadi.org
     service: http://localhost:5008
-  - hostname: ios-health-dump.mnalavadi.org
+  - hostname: ios-health.mnalavadi.org
     service: http://localhost:5009
   - service: http_status:404

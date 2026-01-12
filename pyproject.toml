@@ -1,5 +1,5 @@
 [project]
-name = "servicemonitor"
+name = "service-monitor"
 version = "0.1.0"
 description = "Web dashboard for monitoring systemd services"
 authors = [

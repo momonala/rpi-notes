@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
+from src.canned_info import canned_service_statuses
 from src.services import (
     get_info_for_service,
     get_project_group,
@@ -69,17 +70,12 @@ def test_parse_last_error(status_text, expected):
 
 
 @pytest.mark.parametrize(
-    "service_name,expected_group",
-    [
-        ("projects_test.service", "test"),
-        ("projects_task-manager-data-backup-scheduler.service", "task-manager"),
-        ("projects_incognita-dashboard.service", "incognita"),
-        ("projects_train_tracker_site.service", "train_tracker"),
-    ],
+    "service",
+    canned_service_statuses,
 )
-def test_get_project_group(service_name, expected_group):
+def test_get_project_group(service):
     """Project group strips service prefixes and suffixes."""
-    assert get_project_group(service_name) == expected_group
+    assert get_project_group(service.name) == service.project_group
 
 
 @patch("src.services.subprocess.check_output")

@@ -32,9 +32,9 @@ def restart_service():
     return redirect(url_for("index", service=service))
 
 
-@app.route("/train-tracker/check", methods=["POST"])
-def train_tracker_check():
-    """Run the train tracker inspections check command."""
+@app.route("/inspector-detector/check", methods=["POST"])
+def inspector_detector_check():
+    """Run the Inspector Detector inspections check command."""
     service = request.form.get("service", "")
     cmd = [
         "/home/mnalavadi/.local/bin/uv",
@@ -45,14 +45,14 @@ def train_tracker_check():
 
     try:
         result = subprocess.run(
-            cmd, check=True, text=True, capture_output=True, cwd="/home/mnalavadi/train_tracker"
+            cmd, check=True, text=True, capture_output=True, cwd="/home/mnalavadi/inspector_detector"
         )
-        logger.info("Train-tracker check completed. stdout: %s", (result.stdout or "").strip())
+        logger.info("inspector-detector check completed. stdout: %s", (result.stdout or "").strip())
         if result.stderr:
-            logger.warning("Train-tracker check stderr: %s", result.stderr.strip())
+            logger.warning("inspector-detector check stderr: %s", result.stderr.strip())
     except subprocess.CalledProcessError as exc:
-        logger.error("Train-tracker check failed: %s", exc.stderr)
-        return (exc.stderr or "Train-tracker check failed"), 500
+        logger.error("inspector-detector check failed: %s", exc.stderr)
+        return (exc.stderr or "inspector-detector check failed"), 500
 
     return redirect(url_for("index", service=service))
 

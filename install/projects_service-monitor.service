@@ -3,7 +3,7 @@
  After=multi-user.target
 
  [Service]
- WorkingDirectory=/home/mnalavadi/rpi-home-server
+ WorkingDirectory=/home/mnalavadi/service-monitor
  Type=idle
  ExecStart=/home/mnalavadi/.local/bin/uv run src/app.py
  User=mnalavadi

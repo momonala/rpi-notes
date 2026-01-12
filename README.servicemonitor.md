@@ -51,7 +51,7 @@ flowchart LR
 
 1. Clone the repository:
    ```bash
-   cd ~/rpi-home-server
+   cd ~/service-monitor
    ```
 
 2. Run the install script:
@@ -68,7 +68,7 @@ flowchart LR
 
 3. Configure sudoers (required for restart functionality):
    ```bash
-   # Add to /etc/sudoers.d/servicemonitor
+   # Add to /etc/sudoers.d/service-monitor
    mnalavadi ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart projects_*
    ```
 
@@ -76,7 +76,7 @@ flowchart LR
 
 **Via systemd (production):**
 ```bash
-sudo systemctl start projects_servicemonitor.service
+sudo systemctl start projects_service-monitor.service
 ```
 
 **Manual (development):**
@@ -85,12 +85,12 @@ uv run src/app.py
 ```
 
 **Default URL:** `http://localhost:5001`  
-**External URL:** `https://servicemonitor.mnalavadi.org` (via Cloudflared)
+**External URL:** `https://service-monitor.mnalavadi.org` (via Cloudflared)
 
 ## Project Structure
 
 ```
-rpi-home-server/
+service-monitor/
 ├── src/
 │   ├── app.py                          # Flask app, all routes and business logic
 │   ├── services.py                     # Service status management
@@ -106,7 +106,7 @@ rpi-home-server/
 │   └── test_services.py                # Services module tests
 ├── install/
 │   ├── install.sh                      # Full setup script
-│   └── projects_servicemonitor.service # systemd unit file
+│   └── projects_service-monitor.service # systemd unit file
 ├── pyproject.toml                      # Project dependencies (uv)
 └── cloudflared/
     └── config.yml                      # Cloudflared tunnel config
@@ -119,7 +119,7 @@ rpi-home-server/
 | `/` | GET | Dashboard view, lists all `projects_*` services |
 | `/?service=<name>` | GET | Dashboard with detailed logs for selected service |
 | `/restart` | POST | Restart a service |
-| `/train-tracker/check` | POST | Run train tracker inspection check (service-specific) |
+| `/inspector-detector/check` | POST | Run Inspector Detector inspection check (service-specific) |
 
 ### POST `/restart`
 
@@ -136,13 +136,13 @@ service=projects_example.service
 
 **Validation:** Service name must exist in `systemctl list-units projects_*`
 
-### POST `/train-tracker/check`
+### POST `/inspector-detector/check`
 
-Runs `/home/mnalavadi/train_tracker/scripts/check_inspections` for the train tracker service.
+Runs `/home/mnalavadi/inspector-detector/scripts/check_inspections` for the Inspector Detector service.
 
 **Request:**
 ```
-service=projects_train_tracker.service
+service=projects_inspector-detector.service
 ```
 
 **Response:** Redirects to index on success, 400/500 on error.
@@ -188,7 +188,7 @@ ServiceStatus
 
 ## Deployment
 
-**systemd unit file:** `install/projects_servicemonitor.service`
+**systemd unit file:** `install/projects_service-monitor.service`
 
 ```ini
 [Unit]
@@ -196,7 +196,7 @@ Description=Service Monitor
 After=multi-user.target
 
 [Service]
-WorkingDirectory=/home/mnalavadi/rpi-home-server
+WorkingDirectory=/home/mnalavadi/service-monitor
 Type=idle
 ExecStart=/home/mnalavadi/.local/bin/uv run src/app.py
 User=mnalavadi
@@ -216,7 +216,7 @@ WantedBy=multi-user.target
 
 ## Known Limitations
 
-- Train tracker check endpoint is hardcoded to specific service and path
+- Inspector Detector check endpoint is hardcoded to specific service and path
 - No authentication on web interface
 - Requires sudo for restart functionality (must configure sudoers)
 - Only monitors services matching `projects_*` pattern

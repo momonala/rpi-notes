@@ -22,13 +22,10 @@ class ServiceStatus:
 
 
 def get_project_group(service_name: str) -> str:
-    name = service_name.replace("projects_", "").replace(".service", "")
-    name = name.replace("_site", "")
-    name = name.replace("-dashboard", "")
-    name = name.replace("-data-backup-scheduler", "")
-    name = name.replace("-data-api", "")
-    name = name.replace("-scheduler", "")
-    return name
+    service_name = service_name.replace(".service", "")
+    service_name = service_name.replace("projects_", "")
+    project = service_name.split("_")[0]
+    return project
 
 
 def is_linux():
@@ -65,7 +62,7 @@ def parse_last_error(status_text):
 
 def get_info_for_service(service: str) -> str:
     result = subprocess.run(
-        ["systemctl", "status", service, "--no-pager", "--lines=200"],
+        ["systemctl", "status", service, "--no-pager", "--lines=1000"],
         text=True,
         capture_output=True,
     )

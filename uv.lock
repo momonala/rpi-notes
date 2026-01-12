@@ -1751,7 +1751,7 @@ wheels = [
 ]
 
 [[package]]
-name = "servicemonitor"
+name = "service-monitor"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

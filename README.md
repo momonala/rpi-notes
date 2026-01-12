@@ -11,6 +11,7 @@ export RPI_HOST="mnalavadi@192.168.0.184"
 
 ## Contents
 
+- [Project Naming Convention Tool](#project-naming-convention-tool)
 - [SSH Setup](#ssh-setup)
 - [System Updates & Initial Setup](#system-updates--initial-setup)
 - [Shell Configuration](#shell-configuration)
@@ -21,6 +22,63 @@ export RPI_HOST="mnalavadi@192.168.0.184"
 > - [README.servicemonitor.md](README.servicemonitor.md) - Technical spec for the Service Monitor dashboard app
 > - [README.systemd.md](README.systemd.md) - SystemD service management guide
 > - [cloudflared/README.md](cloudflared/README.md) - Cloudflare setup
+
+---
+
+## Project Naming Convention Tool
+
+**Location:** `../rename_project_unified.sh` (at projects root)
+
+A unified tool to standardize project directory names and systemd service files across all projects.
+
+**Naming Convention:**
+```
+Format: projects_<PROJECT><_SUB-SERVICE>.service
+- PROJECT: alphanumeric with dashes only (no underscores)
+- SUB-SERVICE: optional, starts with underscore, can contain dashes
+
+Examples:
+- energy_monitor → energy-monitor
+- projects_energy_monitor.service → projects_energy-monitor.service
+- projects_inspector-detector_site.service → projects_inspector-detector_site.service
+```
+
+**Usage:**
+```bash
+# From the projects root directory
+cd /Users/mnalavadi/code/projects
+
+# Dry run to see what would change
+./rename_project_unified.sh --dry-run
+
+# Interactive rename (recommended)
+./rename_project_unified.sh
+
+# Follow the prompts to rename each project
+```
+
+**What it does:**
+- Scans all projects and identifies naming violations
+- Renames project directories using `git mv`
+- Updates all service files and references in:
+  - Service files (WorkingDirectory paths)
+  - pyproject.toml (project name)
+  - install/install.sh (service_name variable)
+  - README files
+  - Test fixtures (src/canned_info.py)
+- Generates Pi migration commands script
+- Provides interactive confirmation for each project
+
+**Single Project Rename (legacy):**
+
+The `install/rename_project_local.sh` and `install/rename_service_pi.sh` scripts are still available for single-project renames:
+```bash
+# From within a single project directory
+./install/rename_project_local.sh old_name new-name
+
+# Then on the Pi (after pushing changes)
+./install/rename_service_pi.sh old_name new-name
+```
 
 ---
 
