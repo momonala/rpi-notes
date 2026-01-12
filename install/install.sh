@@ -1,4 +1,4 @@
-service_name="servicemonitor"
+service_name="service-monitor"
 service_port=5001
 
 set -e  # Exit immediately if a command exits with a non-zero status

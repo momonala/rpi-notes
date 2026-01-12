@@ -74,14 +74,14 @@ def test_restart_service(mock_run, client):
 
 
 @patch("src.app.subprocess.run")
-def test_train_tracker_check(mock_run, client):
-    """Train tracker check runs command and redirects on success or returns error."""
+def test_inspector_detector_check(mock_run, client):
+    """Inspector Detector check runs command and redirects on success or returns error."""
     mock_run.return_value.returncode = 0
     mock_run.return_value.stdout = "Check completed"
     mock_run.return_value.stderr = ""
 
     response = client.post(
-        "/train-tracker/check", data={"service": "projects_train.service"}, follow_redirects=False
+        "/inspector-detector/check", data={"service": "projects_train.service"}, follow_redirects=False
     )
     assert response.status_code == 302
     mock_run.assert_called_once_with(
@@ -89,10 +89,10 @@ def test_train_tracker_check(mock_run, client):
         check=True,
         text=True,
         capture_output=True,
-        cwd="/home/mnalavadi/train_tracker",
+        cwd="/home/mnalavadi/inspector_detector",
     )
 
     mock_run.side_effect = subprocess.CalledProcessError(1, "uv", stderr="Script failed")
-    response = client.post("/train-tracker/check", data={"service": "projects_train.service"})
+    response = client.post("/inspector-detector/check", data={"service": "projects_train.service"})
     assert response.status_code == 500
     assert b"Script failed" in response.data

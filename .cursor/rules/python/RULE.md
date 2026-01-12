@@ -73,9 +73,9 @@ alwaysApply: true
 - Write tests for new functionality in the tests/ directory.
 - Test behavior, not implementation details.
 - Minimize mocking: only mock I/O boundaries (subprocess, network, filesystem). Test pure functions directly.
-- Consolidate tests: combine related scenarios into one test instead of separate tests per case.
-- Focus on unique edge cases. Avoid redundant test variations that exercise the same logic.
-- Use `pytest.mark.parametrize` for different inputs with the same validation logic.
+- Focus on unique edge cases. Avoid redundant test variations and assertions which exercise the same logic.
+- As a rule of thumb, tests are as small as possible (atomic, test one thing) and we write the fewest amount of tests as possible to cover as much as possible
+- This rule can be broken for larger integration tests, but always consider if we can apply the rule before breaking it.
 - Add or update tests alongside code changes.
 - Use pytest and parametrization. Avoid test classes.
 

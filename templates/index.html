@@ -123,8 +123,8 @@
                         <input type="hidden" name="service" value="{{ current }}">
                         <button type="submit" class="btn btn--danger" data-loading-text="Restarting...">Restart</button>
                     </form>
-                    {% if current == 'projects_train_tracker.service' %}
-                    <form method="POST" action="/train-tracker/check" onsubmit="return confirm('Run check_inspections now?');">
+                    {% if current == 'projects_inspector-detector.service' %}
+                    <form method="POST" action="/inspector-detector/check" onsubmit="return confirm('Run check_inspections now?');">
                         <input type="hidden" name="service" value="{{ current }}">
                         <button type="submit" class="btn btn--warning" data-loading-text="Checking...">Check Inspections</button>
                     </form>
@@ -137,7 +137,7 @@
                 {% if selected_service_info %}
                 <!-- Service Detail View -->
                 <div class="service-info-panel">
-                    <pre class="service-info">{{ service_info }}</pre>
+                    <pre class="service-info">{{ selected_service_info }}</pre>
                 </div>
                 {% else %}
                 <!-- Dashboard Home View -->
