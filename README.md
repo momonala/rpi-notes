@@ -1,5 +1,8 @@
 # Raspberry Pi Setup Notes
 
+[![CI](https://github.com/momonala/service-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/momonala/service-monitor/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/momonala/service-monitor/branch/main/graph/badge.svg)](https://codecov.io/gh/momonala/service-monitor)
+
 Personal notes for Raspberry Pi setup and configuration. Because I have to look this up every time.
 
 ## Configuration
