@@ -90,7 +90,7 @@
                         <span class="service-name">{{ svc.name }}</span>
                         <span class="service-tooltip" aria-hidden="true">{{ svc.name }}</span>
                     </a>
-                    {% if svc.uptime or svc.memory or svc.cpu or svc.last_error %}
+                    {% if svc.uptime or svc.memory or svc.cpu or svc.last_error or svc.ci_status %}
                     <div class="service-details">
                         {% if svc.uptime %}
                         <span class="service-details__item service-details__item--uptime">⏱️ {{ svc.uptime }}</span>
@@ -100,6 +100,11 @@
                         {% endif %}
                         {% if svc.cpu %}
                         <span class="service-details__item service-details__item--cpu">⚡ {{ svc.cpu }}</span>
+                        {% endif %}
+                        {% if svc.ci_status %}
+                        <span class="service-details__item service-details__item--ci">
+                            CI: {% if svc.ci_status == 'success' %}✅{% elif svc.ci_status == 'failure' %}❌{% else %}⚠️{% endif %}
+                        </span>
                         {% endif %}
                         {% if svc.last_error %}
                         <span class="service-details__item service-details__item--error" title="{{ svc.last_error }}">❌ {{ svc.last_error }}</span>
