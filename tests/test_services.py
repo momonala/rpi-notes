@@ -6,13 +6,15 @@ import pytest
 
 from src.canned_info import canned_service_statuses
 from src.services import (
+    get_ci_status,
+    get_github_repo_name,
     get_info_for_service,
-    get_project_group,
     get_service_status,
     get_services,
     parse_cpu,
     parse_last_error,
     parse_memory,
+    parse_service_name,
     parse_uptime,
 )
 
@@ -73,9 +75,11 @@ def test_parse_last_error(status_text, expected):
     "service",
     canned_service_statuses,
 )
-def test_get_project_group(service):
-    """Project group strips service prefixes and suffixes."""
-    assert get_project_group(service.name) == service.project_group
+def test_parse_service_name(service):
+    """Parse service name extracts project group and suffix correctly."""
+    project_group, suffix = parse_service_name(service.name)
+    assert project_group == service.project_group
+    assert suffix == service.suffix
 
 
 @patch("src.services.subprocess.check_output")
@@ -124,3 +128,108 @@ def test_get_service_status(mock_get_info):
     mock_get_info.return_value = "Active: inactive (dead)\n"
     status = get_service_status("projects_test.service")
     assert not status.is_active and not status.is_failed
+
+
+@pytest.mark.parametrize(
+    "project_group,expected",
+    [
+        ("atc-tour-extension", "atc-tour-extension"),
+        ("energy-monitor", "energy-monitor"),
+        ("bathroom-button", "bathroom-button"),
+        ("service-monitor", "service-monitor"),
+    ],
+)
+def test_get_github_repo_name(project_group, expected):
+    """Map project_group to GitHub repo name (1:1 mapping)."""
+    assert get_github_repo_name(project_group) == expected
+
+
+@patch("src.services.requests.get")
+def test_get_ci_status_success(mock_get):
+    """Return success when latest workflow run succeeded."""
+    mock_response = mock_get.return_value
+    mock_response.raise_for_status.return_value = None
+    mock_response.json.return_value = {"workflow_runs": [{"conclusion": "success"}]}
+    assert get_ci_status("test-repo") == "success"
+
+
+@patch("src.services.requests.get")
+def test_get_ci_status_failure(mock_get):
+    """Return failure when latest workflow run failed."""
+    mock_response = mock_get.return_value
+    mock_response.raise_for_status.return_value = None
+    mock_response.json.return_value = {"workflow_runs": [{"conclusion": "failure"}]}
+    assert get_ci_status("test-repo") == "failure"
+
+
+@patch("src.services.requests.get")
+def test_get_ci_status_no_runs(mock_get):
+    """Return error when no workflow runs found."""
+    mock_response = mock_get.return_value
+    mock_response.raise_for_status.return_value = None
+    mock_response.json.return_value = {"workflow_runs": []}
+    assert get_ci_status("test-repo") == "error"
+
+
+@patch("src.services.requests.get")
+def test_get_ci_status_other_conclusion(mock_get):
+    """Return error for other conclusion values."""
+    mock_response = mock_get.return_value
+    mock_response.raise_for_status.return_value = None
+    mock_response.json.return_value = {"workflow_runs": [{"conclusion": "cancelled"}]}
+    assert get_ci_status("test-repo") == "error"
+
+
+@patch("src.services.requests.get")
+def test_get_ci_status_request_exception(mock_get):
+    """Return error on request exceptions."""
+    import requests
+
+    mock_get.side_effect = requests.RequestException("Connection error")
+    assert get_ci_status("test-repo") == "error"
+
+
+@patch("src.services.requests.get")
+def test_get_ci_status_key_error(mock_get):
+    """Return error on KeyError (missing workflow_runs key)."""
+    mock_response = mock_get.return_value
+    mock_response.raise_for_status.return_value = None
+    mock_response.json.return_value = {}
+    assert get_ci_status("test-repo") == "error"
+
+
+@patch("src.services.requests.get")
+def test_get_ci_status_with_token(mock_get):
+    """Include Authorization header when token is available."""
+    with patch("src.services.GITHUB_TOKEN", "ghp_test_token"):
+        mock_response = mock_get.return_value
+        mock_response.raise_for_status.return_value = None
+        mock_response.json.return_value = {"workflow_runs": [{"conclusion": "success"}]}
+        get_ci_status("test-repo")
+        mock_get.assert_called_once()
+        call_kwargs = mock_get.call_args.kwargs
+        assert call_kwargs["headers"]["Authorization"] == "token ghp_test_token"
+
+
+@patch("src.services.requests.get")
+def test_get_ci_status_without_token(mock_get):
+    """No Authorization header when token is None."""
+    with patch("src.services.GITHUB_TOKEN", None):
+        mock_response = mock_get.return_value
+        mock_response.raise_for_status.return_value = None
+        mock_response.json.return_value = {"workflow_runs": [{"conclusion": "success"}]}
+        get_ci_status("test-repo")
+        mock_get.assert_called_once()
+        call_kwargs = mock_get.call_args.kwargs
+        assert call_kwargs["headers"] == {}
+
+
+@patch("src.services.get_info_for_service")
+@patch("src.services.get_ci_status")
+def test_get_service_status_includes_ci(mock_get_ci, mock_get_info):
+    """ServiceStatus includes CI status from API."""
+    mock_get_info.return_value = "Active: active (running) since Mon; 4 days ago\n"
+    mock_get_ci.return_value = "success"
+    status = get_service_status("projects_test.service")
+    assert status.ci_status == "success"
+    mock_get_ci.assert_called_once_with("test")

@@ -34,6 +34,8 @@ def test_index(mock_get_info, mock_get_status, mock_get_services, mock_is_linux,
         last_error=None,
         full_status="",
         project_group="test1",
+        suffix=None,
+        ci_status="success",
     )
     mock_get_info.return_value = ""
 
