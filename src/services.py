@@ -34,7 +34,7 @@ def is_linux():
 
 def get_services():
     out = subprocess.check_output(
-        ["systemctl", "list-units", "--type=service", "--no-legend", "projects_*"],
+        ["systemctl", "list-units", "--type=service", "--no-legend", "--plain", "projects_*"],
         text=True,
     )
     return [line.strip().split()[0] for line in out.strip().splitlines()]
