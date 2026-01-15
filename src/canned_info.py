@@ -45,6 +45,12 @@ websites = [
         "icon": "🏓",
     },
     {"name": "Trace", "url": "https://trace.mnalavadi.org", "description": "GPS Tracker", "icon": "📍"},
+    {
+        "name": "What's On the Menu?",
+        "url": "https://whats-on-the-menu.mnalavadi.org",
+        "description": "AI Menu Translation",
+        "icon": "🍲",
+    },
 ]
 websites.sort(key=lambda x: x["name"].lower())
 

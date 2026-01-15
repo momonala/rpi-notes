@@ -45,7 +45,6 @@ def parse_service_name(service_name: str) -> tuple[str, str | None]:
     parts = service_name.split("_")
     project_group = parts[0]
     suffix = "_".join(parts[1:]) if len(parts) > 1 else None
-    print(project_group, suffix)
     return (project_group, suffix)
 
 
