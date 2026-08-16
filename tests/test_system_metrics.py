@@ -18,8 +18,10 @@ from src.system_metrics import (
     canned_history,
     ensure_schema,
     get_history,
+    get_latest_service_samples,
     get_service_history,
     history_payload,
+    latest_service_samples_payload,
     prune_old_samples,
     record_sample,
     record_service_samples,
@@ -403,6 +405,41 @@ def test_record_and_get_service_history(metrics_db: Path):
     # Other services are not mixed in.
     bar = get_service_history("projects_bar.service", window="1h", now=now, db_path=metrics_db)
     assert len(bar) == 1
+
+
+def test_get_latest_service_samples_returns_most_recent_per_service(metrics_db: Path):
+    now = 1_700_000_000.0
+    record_service_samples(
+        [
+            ServiceSample(now - 100, "projects_foo.service", 12.0, 5.0),
+            ServiceSample(now - 100, "projects_bar.service", 6.0, 1.0),
+            ServiceSample(now - 50, "projects_foo.service", 13.0, 7.0),
+        ],
+        db_path=metrics_db,
+    )
+    latest = get_latest_service_samples(
+        ["projects_foo.service", "projects_bar.service", "projects_missing.service"], db_path=metrics_db
+    )
+    assert latest["projects_foo.service"].ts == now - 50
+    assert latest["projects_foo.service"].memory_used_pct == 13.0
+    assert latest["projects_bar.service"].cpu_percent == 1.0
+    assert "projects_missing.service" not in latest
+
+
+def test_get_latest_service_samples_empty_list(metrics_db: Path):
+    assert get_latest_service_samples([], db_path=metrics_db) == {}
+
+
+def test_latest_service_samples_payload_shape(metrics_db: Path):
+    now = 1_700_000_000.0
+    record_service_samples(
+        [ServiceSample(now, "projects_foo.service", 12.0, 5.0)],
+        db_path=metrics_db,
+    )
+    payload = latest_service_samples_payload(
+        ["projects_foo.service", "projects_bar.service"], db_path=metrics_db
+    )
+    assert payload == {"projects_foo.service": {"cpu_percent": 5.0, "memory_used_pct": 12.0}}
 
 
 def test_get_service_history_applies_rollup(metrics_db: Path):

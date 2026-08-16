@@ -205,11 +205,19 @@ Returns:
       "memory": "123.4M",
       "cpu": "2min 15s",
       "last_error": null,
-      "ci_status": "success"
+      "ci_status": "success",
+      "cpu_percent": 4.2,
+      "memory_used_pct": 8.5
     }
   ]
 }
 ```
+
+`cpu_percent`/`memory_used_pct` are each service's most recent sample from `system_metrics.db` (same
+source as `/api/services/history`), fetched for all services in one batched query
+(`latest_service_samples_payload`); `null` when a service has no recorded samples yet. Rendered in the
+sidebar row as two plain percentages, next to the alert bell, hidden along with the rest of the row's
+detail columns when the sidebar is collapsed.
 
 ### GET `/api/system-info`
 

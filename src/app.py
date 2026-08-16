@@ -31,6 +31,7 @@ from src.system_metrics import (
     WINDOWS,
     history_payload,
     latest_service_sample_payload,
+    latest_service_samples_payload,
     rollup_seconds,
     service_history_payload,
     temperature_window_stats,
@@ -187,6 +188,7 @@ def sidebar_details():
 
     services = get_services()
     detailed_statuses = _collect_statuses(services, detailed=True)
+    latest_metrics = latest_service_samples_payload(services)
     payload = [
         {
             "name": status.name,
@@ -196,6 +198,8 @@ def sidebar_details():
             "last_error": status.last_error,
             "ci_status": status.ci_status,
             "project_group": status.project_group,
+            "cpu_percent": latest_metrics.get(status.name, {}).get("cpu_percent"),
+            "memory_used_pct": latest_metrics.get(status.name, {}).get("memory_used_pct"),
         }
         for status in detailed_statuses
     ]

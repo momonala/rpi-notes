@@ -33,6 +33,7 @@
     --header-height:           3.5rem;
     --status-icon-size:        14px;
     --service-uptime-col:      5.5ch;
+    --service-metric-col:      calc(var(--status-icon-size) + 0.2em + 0.3em + 4ch + 2px);
 
     /* Spacing */
     --spacing-xs: 0.25rem;
@@ -195,6 +196,7 @@ textarea:focus-visible {
     .sidebar--collapsed .sidebar__search,
     .sidebar--collapsed .service-name,
     .sidebar--collapsed .service-uptime,
+    .sidebar--collapsed .service-mem,
     .sidebar--collapsed .service-details__item--ci,
     .sidebar--collapsed .service-alert-badge {
         display: none !important;
@@ -262,7 +264,7 @@ textarea:focus-visible {
 }
 
 .service-item:hover {
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.04);
     color: var(--color-text-primary);
 }
 
@@ -272,10 +274,10 @@ textarea:focus-visible {
 }
 
 .service-item--active:hover {
-    background: rgba(255, 255, 255, 0.11);
+    background: rgba(255, 255, 255, 0.09);
 }
 
-/* single row: [status] [ci] [time] [name] */
+/* single row: [status] [ci] [alert] [mem%] [time] [name] */
 .service-link {
     display: contents;
     text-decoration: none;
@@ -288,6 +290,7 @@ textarea:focus-visible {
         var(--status-icon-size)
         var(--status-icon-size)
         var(--status-icon-size)
+        var(--service-metric-col)
         var(--service-uptime-col)
         minmax(0, 1fr);
     column-gap: var(--spacing-sm);
@@ -301,7 +304,7 @@ textarea:focus-visible {
 }
 
 .service-name {
-    grid-column: 5;
+    grid-column: 6;
     grid-row: 1;
     white-space: nowrap;
     font-size: var(--font-size-sm);
@@ -334,10 +337,64 @@ textarea:focus-visible {
     display: block;
 }
 
-.service-uptime {
-    grid-column: 4;
+.service-mem {
     grid-row: 1;
-    justify-self: end;
+    grid-column: 4;
+    /* Flush-start, like the icon columns to their left — an end-justified flex
+       group would shift position row to row as the digit count of the value
+       changes (e.g. "3.7%" vs "12.2%"), breaking column alignment. */
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2em;
+    font-size: var(--font-size-xs);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.service-mem:hover .service-metric__value {
+    text-decoration: underline;
+}
+
+/* Fixed width so the badge's own footprint doesn't change with digit count —
+   otherwise the trailing margin before the next column varies row to row. */
+.service-metric__value {
+    display: inline-block;
+    width: 4ch;
+    text-align: right;
+}
+
+.service-metric__icon {
+    width: var(--status-icon-size);
+    height: var(--status-icon-size);
+    flex-shrink: 0;
+    display: block;
+}
+
+/* Text color reflects usage level; no box/border at any level. */
+.service-metric--ok { color: var(--color-status-active); }
+.service-metric--warn { color: var(--color-warning); }
+.service-metric--crit { color: var(--color-status-failed); }
+.service-metric--empty { color: var(--color-text-muted); }
+
+/* Underline the value when the list is sorted by memory usage. */
+.sidebar__nav[data-sort-mode="mem"] .service-mem .service-metric__value {
+    text-decoration: underline;
+}
+
+.project-group[hidden] {
+    display: none;
+}
+
+.service-uptime {
+    grid-column: 5;
+    grid-row: 1;
+    /* Fill the full column (default grid stretch) instead of shrinking to
+       content — flush-start like the icon/metric columns to its left, but
+       with a stable box so the text's own width change doesn't wobble as
+       the value ticks over (e.g. "3d 23h" -> "4d 0h"). */
+    text-align: left;
     font-size: var(--font-size-xs);
     color: var(--color-text-muted);
     white-space: nowrap;

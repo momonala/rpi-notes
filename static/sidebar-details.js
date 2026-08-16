@@ -1,14 +1,47 @@
 (function() {
     'use strict';
 
-    function buildIcon(name) {
+    // Value-text thresholds for the sidebar's compact per-service mem readout
+    // (this is one service's share of the whole machine, so much lower than the
+    // 60/85 warn/crit used by the host-wide and per-service detail-view tiles).
+    const METRIC_WARN_PCT = 5;
+    const METRIC_CRIT_PCT = 10;
+
+    function buildIcon(name, className = 'service-details__icon') {
         const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         svg.setAttribute('aria-hidden', 'true');
-        svg.setAttribute('class', 'service-details__icon');
+        svg.setAttribute('class', className);
         const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
         use.setAttribute('href', `#icon-${name}`);
         svg.appendChild(use);
         return svg;
+    }
+
+    /**
+     * Build a "[icon] N.N%" cell for the sidebar row. Text color reflects usage
+     * level (ok/warn/crit) instead of a fixed per-metric identity color.
+     * @param {string} className - 'service-mem'
+     * @param {string} icon - icon symbol name
+     * @param {number | null} value
+     */
+    function buildMetricCell(className, icon, value) {
+        const cell = document.createElement('span');
+        cell.className = `${className} ${
+            value == null
+                ? 'service-metric--empty'
+                : value >= METRIC_CRIT_PCT
+                    ? 'service-metric--crit'
+                    : value >= METRIC_WARN_PCT
+                        ? 'service-metric--warn'
+                        : 'service-metric--ok'
+        }`;
+        cell.title = 'Click to sort by this column';
+        cell.appendChild(buildIcon(icon, 'service-metric__icon'));
+        const text = document.createElement('span');
+        text.className = 'service-metric__value';
+        text.textContent = value != null ? `${value.toFixed(1)}%` : '—';
+        cell.appendChild(text);
+        return cell;
     }
 
     /**
@@ -41,6 +74,7 @@
 
         // Remove previous dynamic bottom-row cells
         grid.querySelector('.service-details__item--ci')?.remove();
+        grid.querySelector('.service-mem')?.remove();
         grid.querySelector('.service-uptime')?.remove();
 
         if (status.ci_status) {
@@ -58,12 +92,12 @@
             ciLink.appendChild(ciSvg);
             grid.appendChild(ciLink);
         }
-        if (status.uptime) {
-            const item = document.createElement('span');
-            item.className = 'service-uptime';
-            item.textContent = status.uptime;
-            grid.appendChild(item);
-        }
+        grid.appendChild(buildMetricCell('service-mem', 'memory', status.memory_used_pct));
+
+        const item = document.createElement('span');
+        item.className = 'service-uptime';
+        item.textContent = status.uptime || '—';
+        grid.appendChild(item);
     }
 
     /**
@@ -160,12 +194,85 @@
         control.appendChild(select);
     }
 
+    // --- Click-to-sort: click the mem cell to sort the whole list by memory
+    // usage (descending, missing readings last); click it again to return to
+    // the default alphabetical/grouped order.
+
+    let sortMode = null; // null | 'mem'
+    let latestMetricsByName = new Map(); // service name -> { memory_used_pct }
+    let originalOrder = null; // [{ group, item }], captured once from the server-rendered order
+    let sortHandlersBound = false;
+
+    function captureOriginalOrder(nav) {
+        if (originalOrder) return;
+        originalOrder = [];
+        nav.querySelectorAll('.project-group').forEach((group) => {
+            group.querySelectorAll(':scope > .service-item').forEach((item) => {
+                originalOrder.push({ group, item });
+            });
+        });
+    }
+
+    function metricValueFor(serviceName) {
+        const metrics = latestMetricsByName.get(serviceName);
+        return metrics ? metrics.memory_used_pct : null;
+    }
+
+    function applySort(nav) {
+        captureOriginalOrder(nav);
+        if (!originalOrder.length) return;
+
+        if (!sortMode) {
+            let lastGroup = null;
+            for (const { group, item } of originalOrder) {
+                if (group !== lastGroup) {
+                    nav.appendChild(group);
+                    lastGroup = group;
+                }
+                group.appendChild(item);
+            }
+            nav.querySelectorAll('.project-group').forEach((group) => {
+                group.hidden = false;
+            });
+        } else {
+            const sorted = [...originalOrder].sort((a, b) => {
+                const va = metricValueFor(a.item.getAttribute('data-service-name'));
+                const vb = metricValueFor(b.item.getAttribute('data-service-name'));
+                if (va == null && vb == null) return 0;
+                if (va == null) return 1;
+                if (vb == null) return -1;
+                return vb - va;
+            });
+            for (const { item } of sorted) {
+                nav.appendChild(item);
+            }
+            nav.querySelectorAll('.project-group').forEach((group) => {
+                group.hidden = !group.querySelector(':scope > .service-item');
+            });
+        }
+
+        nav.dataset.sortMode = sortMode ?? '';
+    }
+
+    function setupSortHandlers(nav) {
+        if (sortHandlersBound) return;
+        sortHandlersBound = true;
+        nav.addEventListener('click', (event) => {
+            const cell = event.target.closest('.service-mem');
+            if (!cell || !nav.contains(cell)) return;
+            sortMode = sortMode === 'mem' ? null : 'mem';
+            applySort(nav);
+        });
+    }
+
     /**
      * Refresh sidebar details from backend.
      */
     async function load() {
         const nav = document.querySelector('.sidebar__nav');
         if (!nav) return;
+
+        setupSortHandlers(nav);
 
         const [detailsResponse, alertsResponse] = await Promise.all([
             fetch('/api/services/sidebar-details'),
@@ -184,12 +291,18 @@
             byName.set(item.getAttribute('data-service-name'), item);
         }
 
+        latestMetricsByName = new Map(
+            services.map((status) => [status.name, { memory_used_pct: status.memory_used_pct }]),
+        );
+
         for (const status of services) {
             const serviceItem = byName.get(status.name);
             if (!serviceItem) continue;
             updateServiceItem(serviceItem, status);
             updateAlertBadge(serviceItem, alertSettings[status.name] ?? 'hourly');
         }
+
+        applySort(nav);
     }
 
     window.ServiceMonitorSidebarDetails = {

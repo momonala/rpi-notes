@@ -680,6 +680,41 @@ def get_latest_service_sample(service: str, db_path: Path = DB_PATH) -> ServiceS
     return ServiceSample(ts=row[0], service=service, memory_used_pct=row[1], cpu_percent=row[2])
 
 
+def get_latest_service_samples(services: list[str], db_path: Path = DB_PATH) -> dict[str, ServiceSample]:
+    """Return the most recent persisted sample for each service, in one query (for the sidebar rows)."""
+    if not services:
+        return {}
+    ensure_schema(db_path)
+    placeholders = ",".join("?" * len(services))
+    with _connect(db_path) as conn:
+        rows = conn.execute(
+            f"""
+            SELECT s.service, s.ts, s.memory_used_pct, s.cpu_percent
+            FROM service_samples s
+            JOIN (
+                SELECT service, MAX(ts) AS max_ts
+                FROM service_samples
+                WHERE service IN ({placeholders})
+                GROUP BY service
+            ) latest ON s.service = latest.service AND s.ts = latest.max_ts
+            """,
+            services,
+        ).fetchall()
+    return {
+        row[0]: ServiceSample(ts=row[1], service=row[0], memory_used_pct=row[2], cpu_percent=row[3])
+        for row in rows
+    }
+
+
+def latest_service_samples_payload(services: list[str], db_path: Path = DB_PATH) -> dict[str, dict]:
+    """JSON-ready mapping of service name -> latest CPU/memory reading, for the sidebar rows."""
+    samples = get_latest_service_samples(services, db_path=db_path)
+    return {
+        service: {"cpu_percent": sample.cpu_percent, "memory_used_pct": sample.memory_used_pct}
+        for service, sample in samples.items()
+    }
+
+
 def canned_service_history(
     service: str,
     window: str = DEFAULT_WINDOW,

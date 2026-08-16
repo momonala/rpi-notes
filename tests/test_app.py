@@ -106,11 +106,47 @@ def test_inspector_detector_check(mock_run, client):
     assert b"Script failed" in response.data
 
 
+@patch("src.app.latest_service_samples_payload")
 @patch("src.app.is_linux", return_value=True)
 @patch("src.app.get_services", return_value=["projects_test1.service"])
 @patch("src.app.get_service_status")
-def test_sidebar_details(mock_get_status, mock_get_services, mock_is_linux, client):
-    """Sidebar details endpoint returns enriched service status JSON."""
+def test_sidebar_details(mock_get_status, mock_get_services, mock_is_linux, mock_latest_metrics, client):
+    """Sidebar details endpoint returns enriched service status JSON, including latest CPU/memory."""
+    mock_get_status.return_value = ServiceStatus(
+        name="projects_test1.service",
+        is_active=True,
+        is_failed=False,
+        uptime="1 day",
+        memory="100M",
+        cpu="10s",
+        last_error=None,
+        full_status="",
+        project_group="test1",
+        suffix=None,
+        ci_status="success",
+    )
+    mock_latest_metrics.return_value = {
+        "projects_test1.service": {"cpu_percent": 4.2, "memory_used_pct": 8.5}
+    }
+
+    response = client.get("/api/services/sidebar-details")
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["services"][0]["name"] == "projects_test1.service"
+    assert payload["services"][0]["ci_status"] == "success"
+    assert payload["services"][0]["cpu_percent"] == 4.2
+    assert payload["services"][0]["memory_used_pct"] == 8.5
+    assert "projects" not in payload
+
+
+@patch("src.app.latest_service_samples_payload", return_value={})
+@patch("src.app.is_linux", return_value=True)
+@patch("src.app.get_services", return_value=["projects_test1.service"])
+@patch("src.app.get_service_status")
+def test_sidebar_details_missing_metrics_are_null(
+    mock_get_status, mock_get_services, mock_is_linux, mock_latest_metrics, client
+):
+    """When a service has no recorded samples yet, cpu/memory fields are null rather than absent/erroring."""
     mock_get_status.return_value = ServiceStatus(
         name="projects_test1.service",
         is_active=True,
@@ -126,11 +162,9 @@ def test_sidebar_details(mock_get_status, mock_get_services, mock_is_linux, clie
     )
 
     response = client.get("/api/services/sidebar-details")
-    assert response.status_code == 200
     payload = response.get_json()
-    assert payload["services"][0]["name"] == "projects_test1.service"
-    assert payload["services"][0]["ci_status"] == "success"
-    assert "projects" not in payload
+    assert payload["services"][0]["cpu_percent"] is None
+    assert payload["services"][0]["memory_used_pct"] is None
 
 
 @patch("src.app.is_linux", return_value=True)

@@ -142,14 +142,13 @@
                             <span class="service-name">
                                 {%- set _parts = svc.name.split('_', 1) -%}
                                 {%- if _parts|length == 2 -%}
-                                    {%- set _prefix = _parts[0] + '_' -%}
                                     {%- set _rest = _parts[1] -%}
                                     {%- if _rest.endswith('.service') -%}
-                                        <span class="sn-dim">{{ _prefix }}</span><span class="sn-core">{{ _rest[:-8] }}</span><span class="sn-dim">.service</span>
+                                        <span class="sn-core">{{ _rest[:-8] }}</span><span class="sn-dim">.service</span>
                                     {%- elif _rest.endswith('.timer') -%}
-                                        <span class="sn-dim">{{ _prefix }}</span><span class="sn-core">{{ _rest[:-6] }}</span><span class="sn-dim">.timer</span>
+                                        <span class="sn-core">{{ _rest[:-6] }}</span><span class="sn-dim">.timer</span>
                                     {%- else -%}
-                                        <span class="sn-dim">{{ _prefix }}</span><span class="sn-core">{{ _rest }}</span>
+                                        <span class="sn-core">{{ _rest }}</span>
                                     {%- endif -%}
                                 {%- else -%}
                                     {{ svc.name }}
