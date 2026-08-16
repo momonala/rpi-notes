@@ -646,6 +646,12 @@ textarea:focus-visible {
     gap: var(--spacing-md);
 }
 
+/* Only two tiles (cpu/memory) in the wide main content column — cap their
+   width so they don't stretch to fill the row like the four-tile sidebar grid. */
+.metric-grid--service {
+    grid-template-columns: repeat(auto-fit, minmax(9.5rem, 12rem));
+}
+
 .metric-grid__placeholder {
     margin: 0;
     color: var(--color-text-muted);

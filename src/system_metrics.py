@@ -661,6 +661,25 @@ def get_service_history(
     return _downsample(rolled, max_points=max_points, aggregate=_aggregate_service_bucket)
 
 
+def get_latest_service_sample(service: str, db_path: Path = DB_PATH) -> ServiceSample | None:
+    """Return the most recent persisted sample for one service, or None if it has no history yet."""
+    ensure_schema(db_path)
+    with _connect(db_path) as conn:
+        row = conn.execute(
+            """
+            SELECT ts, memory_used_pct, cpu_percent
+            FROM service_samples
+            WHERE service = ?
+            ORDER BY ts DESC
+            LIMIT 1
+            """,
+            (service,),
+        ).fetchone()
+    if row is None:
+        return None
+    return ServiceSample(ts=row[0], service=service, memory_used_pct=row[1], cpu_percent=row[2])
+
+
 def canned_service_history(
     service: str,
     window: str = DEFAULT_WINDOW,
@@ -706,6 +725,20 @@ def service_history_payload(
         "window": window,
         "rollup": rollup,
         "samples": [asdict(sample) for sample in samples],
+    }
+
+
+def latest_service_sample_payload(service: str, db_path: Path = DB_PATH) -> dict:
+    """JSON-ready payload of one service's most recent CPU/memory reading."""
+    if is_linux():
+        sample = get_latest_service_sample(service, db_path=db_path)
+    else:
+        history = canned_service_history(service, window="1h", rollup="30s")
+        sample = history[-1] if history else None
+    return {
+        "service": service,
+        "cpu_percent": sample.cpu_percent if sample else None,
+        "memory_used_pct": sample.memory_used_pct if sample else None,
     }
 
 

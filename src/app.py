@@ -30,6 +30,7 @@ from src.system_metrics import (
     ROLLUPS,
     WINDOWS,
     history_payload,
+    latest_service_sample_payload,
     rollup_seconds,
     service_history_payload,
     temperature_window_stats,
@@ -239,6 +240,21 @@ def system_info_history():
     except Exception:
         logger.exception("Failed to load system metrics history")
         return jsonify({"error": "failed to load system metrics history"}), 500
+
+
+@app.route("/api/services/current")
+def service_current():
+    """Return one service's most recent CPU/memory reading for the live tiles on its detail view."""
+    service = request.args.get("service", "").strip()
+    if not service:
+        return jsonify({"error": "service is required"}), 400
+    if is_linux() and service not in get_services():
+        return jsonify({"error": f"unknown service: {service}"}), 400
+    try:
+        return jsonify(latest_service_sample_payload(service))
+    except Exception:
+        logger.exception("Failed to load current service metrics")
+        return jsonify({"error": "failed to load current service metrics"}), 500
 
 
 @app.route("/api/services/history")

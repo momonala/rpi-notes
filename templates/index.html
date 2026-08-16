@@ -213,6 +213,9 @@
                 <div class="service-info-panel">
                     <pre class="service-info service-info--status">{{ selected_service_info }}</pre>
                 </div>
+                <div id="serviceMetrics" class="metric-grid metric-grid--service" data-service="{{ current }}" aria-busy="true" aria-live="polite">
+                    <p class="metric-grid__placeholder">Loading service metrics…</p>
+                </div>
                 <div class="system-chart system-chart--service" id="serviceChart" data-service="{{ current }}">
                     <button type="button"
                             class="system-chart__collapse"
@@ -385,8 +388,9 @@
     <script src="{{ url_for('static', filename='services-list.js') }}" defer></script>
     <script src="{{ url_for('static', filename='log-stream.js') }}" defer></script>
     <script src="{{ url_for('static', filename='sidebar-details.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='system-info.js') }}" defer></script>
     <script src="{{ url_for('static', filename='chart-utils.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='system-info.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='service-info.js') }}" defer></script>
     <script src="{{ url_for('static', filename='system-metrics-chart.js') }}" defer></script>
     <script src="{{ url_for('static', filename='service-metrics-chart.js') }}" defer></script>
     <script src="{{ url_for('static', filename='main.js') }}" defer></script>
