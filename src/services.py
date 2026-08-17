@@ -324,14 +324,14 @@ def _read_cpu_percent() -> float | None:
 def read_service_metrics(units: list[str]) -> dict[str, tuple[int | None, int | None]]:
     """Return {unit: (memory_bytes, cpu_usage_nsec)} for the given units in one systemctl call.
 
-    MemoryCurrent is the current cgroup RSS in bytes; CPUUsageNSec is cumulative CPU time in
-    nanoseconds since the unit started. Either value is None when systemd reports it as unset
-    (`[not set]`, rendered as SYSTEMD_UNSET) or the unit is missing from the output.
+    memory_bytes is anonymous memory (heap + stack) from the cgroup's memory.stat, which excludes
+    reclaimable file page cache. CPUUsageNSec is cumulative CPU time in nanoseconds since the unit
+    started. Either value is None when the cgroup or property is unavailable.
     """
     if not units:
         return {}
     result = subprocess.run(
-        ["systemctl", "show", "--property=MemoryCurrent,CPUUsageNSec", *units],
+        ["systemctl", "show", "--property=ControlGroup,CPUUsageNSec", *units],
         text=True,
         capture_output=True,
     )
@@ -342,12 +342,32 @@ def read_service_metrics(units: list[str]) -> dict[str, tuple[int | None, int | 
     # `systemctl show <a> <b>` emits one blank-line-separated block per unit, in argument order.
     metrics: dict[str, tuple[int | None, int | None]] = {}
     for unit, block in zip(units, result.stdout.strip().split("\n\n")):
-        values: dict[str, int | None] = {}
+        raw_values: dict[str, str] = {}
         for line in block.splitlines():
             key, _, raw = line.partition("=")
-            values[key] = _parse_systemd_counter(raw)
-        metrics[unit] = (values.get("MemoryCurrent"), values.get("CPUUsageNSec"))
+            raw_values[key] = raw.strip()
+        cgroup = raw_values.get("ControlGroup", "")
+        anon = _read_cgroup_anon(cgroup) if cgroup else None
+        cpu_nsec = _parse_systemd_counter(raw_values.get("CPUUsageNSec", ""))
+        metrics[unit] = (anon, cpu_nsec)
     return metrics
+
+
+def _read_cgroup_anon(cgroup_path: str) -> int | None:
+    """Return anonymous memory bytes from a cgroup's memory.stat (excludes page cache)."""
+    stat_path = Path("/sys/fs/cgroup") / cgroup_path.lstrip("/") / "memory.stat"
+    try:
+        text = stat_path.read_text()
+    except OSError:
+        return None
+    for line in text.splitlines():
+        key, _, value = line.partition(" ")
+        if key == "anon":
+            try:
+                return int(value)
+            except ValueError:
+                return None
+    return None
 
 
 def _parse_systemd_counter(raw: str) -> int | None:
