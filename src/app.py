@@ -1,6 +1,8 @@
 import json
 import logging
+import queue
 import subprocess
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 from pathlib import Path
@@ -126,9 +128,28 @@ def stream_logs():
             stderr=subprocess.PIPE,
             text=True,
         )
+        line_queue: queue.Queue[str | None] = queue.Queue()
+
+        def _reader():
+            try:
+                for line in proc.stdout:
+                    line_queue.put(line)
+            finally:
+                line_queue.put(None)
+
+        threading.Thread(target=_reader, daemon=True).start()
         try:
-            for line in proc.stdout:
+            while True:
+                try:
+                    line = line_queue.get(timeout=15)
+                except queue.Empty:
+                    yield ": heartbeat\n\n"
+                    continue
+                if line is None:
+                    break
                 yield f"data: {json.dumps(line.rstrip())}\n\n"
+        except GeneratorExit:
+            pass
         finally:
             proc.terminate()
             proc.wait()

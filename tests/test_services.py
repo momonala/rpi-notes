@@ -349,17 +349,18 @@ def test_get_system_info_returns_dataclass():
 
 
 def test_read_service_metrics_parses_blocks(monkeypatch):
-    """Each unit's block is parsed into (memory_bytes, cpu_nsec); the unset sentinel becomes None."""
+    """Each unit's block is parsed into (memory_bytes, cpu_nsec); missing cgroup returns None."""
     stdout = (
-        "MemoryCurrent=209715200\nCPUUsageNSec=1500000000\n"
+        "ControlGroup=/system.slice/projects_foo.service\nCPUUsageNSec=1500000000\n"
         "\n"
-        "MemoryCurrent=18446744073709551615\nCPUUsageNSec=42\n"
+        "ControlGroup=\nCPUUsageNSec=42\n"
     )
     completed = subprocess.CompletedProcess(args=[], returncode=0, stdout=stdout, stderr="")
     monkeypatch.setattr(services_module.subprocess, "run", lambda *a, **k: completed)
+    monkeypatch.setattr(services_module, "_read_cgroup_anon", lambda path: 209715200)
     metrics = read_service_metrics(["projects_foo.service", "projects_bar.service"])
     assert metrics["projects_foo.service"] == (209715200, 1500000000)
-    assert metrics["projects_bar.service"] == (None, 42)  # MemoryCurrent unset -> None
+    assert metrics["projects_bar.service"] == (None, 42)  # empty ControlGroup -> None
 
 
 def test_read_service_metrics_empty_units_skips_subprocess(monkeypatch):
