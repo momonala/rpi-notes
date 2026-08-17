@@ -430,7 +430,10 @@ def test_get_latest_service_samples_empty_list(metrics_db: Path):
     assert get_latest_service_samples([], db_path=metrics_db) == {}
 
 
-def test_latest_service_samples_payload_shape(metrics_db: Path):
+def test_latest_service_samples_payload_shape(metrics_db: Path, monkeypatch):
+    from src import system_metrics
+
+    monkeypatch.setattr(system_metrics, "read_total_memory_bytes", lambda: 8 * 1024 * 1024 * 1024)
     now = 1_700_000_000.0
     record_service_samples(
         [ServiceSample(now, "projects_foo.service", 12.0, 5.0)],
@@ -439,7 +442,13 @@ def test_latest_service_samples_payload_shape(metrics_db: Path):
     payload = latest_service_samples_payload(
         ["projects_foo.service", "projects_bar.service"], db_path=metrics_db
     )
-    assert payload == {"projects_foo.service": {"cpu_percent": 5.0, "memory_used_pct": 12.0}}
+    assert payload == {
+        "projects_foo.service": {
+            "cpu_percent": 5.0,
+            "memory_used_pct": 12.0,
+            "memory_used_mb": round(12.0 / 100 * 8 * 1024),
+        }
+    }
 
 
 def test_get_service_history_applies_rollup(metrics_db: Path):

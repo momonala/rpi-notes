@@ -200,6 +200,7 @@ def sidebar_details():
             "project_group": status.project_group,
             "cpu_percent": latest_metrics.get(status.name, {}).get("cpu_percent"),
             "memory_used_pct": latest_metrics.get(status.name, {}).get("memory_used_pct"),
+            "memory_used_mb": latest_metrics.get(status.name, {}).get("memory_used_mb"),
         }
         for status in detailed_statuses
     ]

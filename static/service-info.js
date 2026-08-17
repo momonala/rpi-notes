@@ -8,8 +8,8 @@
     const CRIT_PCT = 85;
 
     const TILES = [
-        { id: 'cpu', icon: 'cpu', label: 'CPU', bar: true, sub: false },
-        { id: 'memory', icon: 'memory', label: 'Memory', bar: true, sub: false },
+        { id: 'cpu', icon: 'cpu', label: 'CPU', bar: false },
+        { id: 'memory', icon: 'memory', label: 'Memory', bar: false },
     ];
 
     let timer = null;
@@ -26,6 +26,7 @@
 
         setTile(container, 'memory', {
             value: formatValue(info.memory_used_pct, '%'),
+            sub: info.memory_used_mb != null ? `${info.memory_used_mb} MB` : '',
             level: levelFor(info.memory_used_pct, WARN_PCT, CRIT_PCT),
             fill: info.memory_used_pct,
         });

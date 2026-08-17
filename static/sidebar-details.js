@@ -18,28 +18,32 @@
     }
 
     /**
-     * Build a "[icon] N.N%" cell for the sidebar row. Text color reflects usage
+     * Build a "[icon] NNN MB (N.N%)" cell for the sidebar row. Text color reflects usage
      * level (ok/warn/crit) instead of a fixed per-metric identity color.
      * @param {string} className - 'service-mem'
      * @param {string} icon - icon symbol name
-     * @param {number | null} value
+     * @param {number | null} pct
+     * @param {number | null} mb
      */
-    function buildMetricCell(className, icon, value) {
+    function buildMetricCell(className, icon, pct, mb) {
         const cell = document.createElement('span');
         cell.className = `${className} ${
-            value == null
+            pct == null
                 ? 'service-metric--empty'
-                : value >= METRIC_CRIT_PCT
+                : pct >= METRIC_CRIT_PCT
                     ? 'service-metric--crit'
-                    : value >= METRIC_WARN_PCT
+                    : pct >= METRIC_WARN_PCT
                         ? 'service-metric--warn'
                         : 'service-metric--ok'
         }`;
         cell.title = 'Click to sort by this column';
-        cell.appendChild(buildIcon(icon, 'service-metric__icon'));
         const text = document.createElement('span');
         text.className = 'service-metric__value';
-        text.textContent = value != null ? `${value.toFixed(1)}%` : '—';
+        text.textContent = pct != null && mb != null
+            ? `${mb} MB (${pct.toFixed(1)}%)`
+            : pct != null
+                ? `${pct.toFixed(1)}%`
+                : '—';
         cell.appendChild(text);
         return cell;
     }
@@ -92,7 +96,7 @@
             ciLink.appendChild(ciSvg);
             grid.appendChild(ciLink);
         }
-        grid.appendChild(buildMetricCell('service-mem', 'memory', status.memory_used_pct));
+        grid.appendChild(buildMetricCell('service-mem', 'memory', status.memory_used_pct, status.memory_used_mb));
 
         const item = document.createElement('span');
         item.className = 'service-uptime';
@@ -292,7 +296,7 @@
         }
 
         latestMetricsByName = new Map(
-            services.map((status) => [status.name, { memory_used_pct: status.memory_used_pct }]),
+            services.map((status) => [status.name, { memory_used_pct: status.memory_used_pct, memory_used_mb: status.memory_used_mb }]),
         );
 
         for (const status of services) {

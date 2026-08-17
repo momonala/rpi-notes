@@ -32,8 +32,8 @@
     --sidebar-collapsed-width: 4rem;
     --header-height:           3.5rem;
     --status-icon-size:        14px;
-    --service-uptime-col:      5.5ch;
-    --service-metric-col:      calc(var(--status-icon-size) + 0.2em + 0.3em + 4ch + 2px);
+    --service-uptime-col:      4.5ch;
+    --service-metric-col:      10ch;
 
     /* Spacing */
     --spacing-xs: 0.25rem;
@@ -361,8 +361,8 @@ textarea:focus-visible {
    otherwise the trailing margin before the next column varies row to row. */
 .service-metric__value {
     display: inline-block;
-    width: 4ch;
-    text-align: right;
+    width: 7ch;
+    text-align: left;
 }
 
 .service-metric__icon {
@@ -373,7 +373,7 @@ textarea:focus-visible {
 }
 
 /* Text color reflects usage level; no box/border at any level. */
-.service-metric--ok { color: var(--color-status-active); }
+.service-metric--ok { color: var(--color-text-muted); }
 .service-metric--warn { color: var(--color-warning); }
 .service-metric--crit { color: var(--color-status-failed); }
 .service-metric--empty { color: var(--color-text-muted); }
@@ -689,6 +689,12 @@ textarea:focus-visible {
     animation: fadeIn 0.3s ease-out;
 }
 
+.dash-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
 .dash-section__title {
     font-size: var(--font-size-sm);
     font-weight: 600;
@@ -703,10 +709,19 @@ textarea:focus-visible {
     gap: var(--spacing-md);
 }
 
-/* Only two tiles (cpu/memory) in the wide main content column — cap their
-   width so they don't stretch to fill the row like the four-tile sidebar grid. */
+/* Only two tiles (cpu/memory) in the wide main content column — compact,
+   no bar, capped width so they don't stretch like the four-tile dashboard grid. */
 .metric-grid--service {
-    grid-template-columns: repeat(auto-fit, minmax(9.5rem, 12rem));
+    grid-template-columns: repeat(2, minmax(0, 9rem));
+}
+
+.metric-grid--service .metric {
+    padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.metric-grid--service .metric__value {
+    font-size: var(--font-size-base);
+    font-weight: 600;
 }
 
 .metric-grid__placeholder {
@@ -839,7 +854,6 @@ textarea:focus-visible {
 }
 
 .system-chart {
-    margin-top: var(--spacing-md);
     padding: var(--spacing-md);
     background: var(--color-bg-panel);
     border: 1px solid var(--border-color);
@@ -1000,8 +1014,6 @@ textarea:focus-visible {
    live logs, so keep it compact and stop it from growing at the logs' expense. */
 .system-chart--service {
     flex-shrink: 0;
-    margin-top: 0;
-    margin-bottom: var(--spacing-md);
 }
 
 .system-chart--service .system-chart__canvas-wrap {
@@ -1159,6 +1171,7 @@ textarea:focus-visible {
 .content-body--service-view {
     display: flex;
     flex-direction: column;
+    gap: var(--spacing-md);
     min-height: 0;
     overflow: hidden;
 }
@@ -1262,7 +1275,6 @@ textarea:focus-visible {
    Live Log Stream Panel
    ============================================ */
 .log-stream-panel {
-    margin-top: var(--spacing-md);
     background: var(--color-bg-panel);
     border-radius: var(--radius);
     border: 1px solid var(--border-color);

@@ -709,8 +709,18 @@ def get_latest_service_samples(services: list[str], db_path: Path = DB_PATH) -> 
 def latest_service_samples_payload(services: list[str], db_path: Path = DB_PATH) -> dict[str, dict]:
     """JSON-ready mapping of service name -> latest CPU/memory reading, for the sidebar rows."""
     samples = get_latest_service_samples(services, db_path=db_path)
+    total_bytes = read_total_memory_bytes() or 0
+    total_mb = total_bytes / (1024 * 1024)
     return {
-        service: {"cpu_percent": sample.cpu_percent, "memory_used_pct": sample.memory_used_pct}
+        service: {
+            "cpu_percent": sample.cpu_percent,
+            "memory_used_pct": sample.memory_used_pct,
+            "memory_used_mb": (
+                round(sample.memory_used_pct / 100 * total_mb)
+                if sample.memory_used_pct is not None and total_mb
+                else None
+            ),
+        }
         for service, sample in samples.items()
     }
 
@@ -755,11 +765,23 @@ def service_history_payload(
         if is_linux()
         else canned_service_history(service, window=window, rollup=rollup)
     )
+    total_bytes = read_total_memory_bytes() or 0
+    total_mb = total_bytes / (1024 * 1024)
     return {
         "service": service,
         "window": window,
         "rollup": rollup,
-        "samples": [asdict(sample) for sample in samples],
+        "samples": [
+            {
+                **asdict(sample),
+                "memory_used_mb": (
+                    round(sample.memory_used_pct / 100 * total_mb)
+                    if sample.memory_used_pct is not None and total_mb
+                    else None
+                ),
+            }
+            for sample in samples
+        ],
     }
 
 
@@ -770,10 +792,17 @@ def latest_service_sample_payload(service: str, db_path: Path = DB_PATH) -> dict
     else:
         history = canned_service_history(service, window="1h", rollup="30s")
         sample = history[-1] if history else None
+    total_bytes = read_total_memory_bytes() or 0
+    total_mb = total_bytes / (1024 * 1024)
+    memory_used_pct = sample.memory_used_pct if sample else None
     return {
         "service": service,
         "cpu_percent": sample.cpu_percent if sample else None,
-        "memory_used_pct": sample.memory_used_pct if sample else None,
+        "memory_used_pct": memory_used_pct,
+        "memory_used_mb": (
+            round(memory_used_pct / 100 * total_mb) if memory_used_pct is not None and total_mb else None
+        ),
+        "memory_total_mb": round(total_mb) if total_mb else None,
     }
 
 

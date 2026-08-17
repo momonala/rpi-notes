@@ -24,7 +24,7 @@
     const TOOLTIP_LABEL_W = 8;
     const TOOLTIP_VALUE_W = 8;
     // Floor for the auto-scaled y axis, so a flat idle service doesn't render as noise.
-    const Y_AXIS_SUGGESTED_MAX = 1;
+    const Y_AXIS_SUGGESTED_MAX = 50;
 
     // Order drives toggles, datasets, and tooltip rows.
     const SERIES = {
@@ -36,10 +36,10 @@
             colorVar: '--color-series-cpu',
         },
         memory: {
-            key: 'memory_used_pct',
+            key: 'memory_used_mb',
             label: 'Memory',
-            displayLabel: 'Memory %',
-            unit: '%',
+            displayLabel: 'Memory',
+            unit: ' MB',
             colorVar: '--color-series-memory',
         },
     };
@@ -163,7 +163,7 @@
                     font: { size: 10 },
                     maxTicksLimit: 6,
                     callback(value) {
-                        return `${this.getLabelForValue(value)}%`;
+                        return `${this.getLabelForValue(value)} MB`;
                     },
                 },
                 grid: { color: border, drawOnChartArea: true },
@@ -196,7 +196,7 @@
                 label(ctx) {
                     const series = SERIES[ctx.dataset.seriesId];
                     if (ctx.parsed.y == null || !series) return null;
-                    return tooltipMetricRow(series.displayLabel, ctx.parsed.y);
+                    return tooltipMetricRow(series.displayLabel, `${ctx.parsed.y}${series.unit}`);
                 },
                 labelColor(ctx) {
                     const color = ctx.dataset.borderColor || textPrimary;

@@ -144,7 +144,7 @@
                                 {%- if _parts|length == 2 -%}
                                     {%- set _rest = _parts[1] -%}
                                     {%- if _rest.endswith('.service') -%}
-                                        <span class="sn-core">{{ _rest[:-8] }}</span><span class="sn-dim">.service</span>
+                                        <span class="sn-core">{{ _rest[:-8] }}</span>
                                     {%- elif _rest.endswith('.timer') -%}
                                         <span class="sn-core">{{ _rest[:-6] }}</span><span class="sn-dim">.timer</span>
                                     {%- else -%}
