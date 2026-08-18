@@ -7,6 +7,14 @@
     const METRIC_WARN_PCT = 5;
     const METRIC_CRIT_PCT = 10;
 
+    const CLOUDFLARE_R2_DASHBOARD_URL = 'https://dash.cloudflare.com/7912d21c50893a42372a2187d0cbdf8b/r2/overview';
+
+    /** Compact "Nh"/"Nd" age string for the backup badge tooltip. */
+    function formatStaleAge(staleSeconds) {
+        const hours = staleSeconds / 3600;
+        return hours < 24 ? `${hours.toFixed(1)}h` : `${(hours / 24).toFixed(1)}d`;
+    }
+
     function buildIcon(name, className = 'service-details__icon') {
         const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         svg.setAttribute('aria-hidden', 'true');
@@ -37,14 +45,24 @@
                         : 'service-metric--ok'
         }`;
         cell.title = 'Click to sort by this column';
-        const text = document.createElement('span');
-        text.className = 'service-metric__value';
-        text.textContent = pct != null && mb != null
-            ? `${mb} MB (${pct.toFixed(1)}%)`
-            : pct != null
-                ? `${pct.toFixed(1)}%`
-                : '—';
-        cell.appendChild(text);
+
+        const value = document.createElement('span');
+        value.className = 'service-metric__value';
+
+        if (pct != null && mb != null) {
+            const amount = document.createElement('span');
+            amount.className = 'service-metric__amount';
+            amount.textContent = `${mb} MB`;
+            value.appendChild(amount);
+
+            const pctEl = document.createElement('span');
+            pctEl.className = 'service-metric__pct';
+            pctEl.textContent = ` (${pct.toFixed(1)}%)`;
+            value.appendChild(pctEl);
+        } else {
+            value.textContent = pct != null ? `${pct.toFixed(1)}%` : '—';
+        }
+        cell.appendChild(value);
         return cell;
     }
 
@@ -76,7 +94,8 @@
         const grid = serviceItem.querySelector('.service-item-grid');
         if (!grid) return;
 
-        // Remove previous dynamic bottom-row cells
+        // Remove previous dynamic bottom-row cells (backup badge is handled separately by
+        // updateBackupBadge, since it loads on its own slower fetch — leave it alone here).
         grid.querySelector('.service-details__item--ci')?.remove();
         grid.querySelector('.service-mem')?.remove();
         grid.querySelector('.service-uptime')?.remove();
@@ -100,12 +119,63 @@
 
         const item = document.createElement('span');
         item.className = 'service-uptime';
+        item.title = 'Click to sort by this column';
         item.textContent = status.uptime || '—';
         grid.appendChild(item);
     }
 
     /**
-     * Render or update the alert badge in the sidebar service item.
+     * Render the cloud-backup badge for a service, once its status is available. Called
+     * separately from updateServiceItem because backup status is fetched on its own (slower,
+     * R2-backed) request and shouldn't hold up the rest of the row.
+     * @param {Element} serviceItem
+     * @param {object} status - { backup_status, backup_stale_seconds }
+     */
+    function updateBackupBadge(serviceItem, status) {
+        const grid = serviceItem.querySelector('.service-item-grid');
+        if (!grid) return;
+
+        grid.querySelector('.service-details__item--backup')?.remove();
+        if (!status.backup_status) return;
+
+        const backupLink = document.createElement('a');
+        backupLink.className = `service-details__item service-details__item--backup service-details__item--backup-${status.backup_status}`;
+        backupLink.href = CLOUDFLARE_R2_DASHBOARD_URL;
+        backupLink.target = '_blank';
+        backupLink.rel = 'noopener';
+        backupLink.title = `Cloud backup: last known-good backup ${formatStaleAge(status.backup_stale_seconds)} old`;
+        const backupSvg = buildIcon('cloud');
+        backupSvg.setAttribute('aria-label', `Backup ${status.backup_status}`);
+        backupSvg.removeAttribute('aria-hidden');
+        backupLink.appendChild(backupSvg);
+        grid.appendChild(backupLink);
+    }
+
+    const ALERT_FREQUENCIES = ['hourly', 'daily', 'muted'];
+
+    /**
+     * Persist a service's alert frequency to the backend.
+     * @param {string} serviceName
+     * @param {string} frequency - 'hourly' | 'daily' | 'muted'
+     * @returns {Promise<boolean>} whether the save succeeded
+     */
+    async function persistAlertFrequency(serviceName, frequency) {
+        try {
+            const res = await fetch('/api/alert-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ service: serviceName, frequency }),
+            });
+            return res.ok;
+        } catch (err) {
+            console.error('Failed to update alert setting:', err);
+            return false;
+        }
+    }
+
+    /**
+     * Render or update the alert badge in the sidebar service item. Clicking the badge
+     * cycles hourly -> daily -> muted -> hourly and persists the change.
      * @param {Element} serviceItem
      * @param {string} frequency - 'hourly' | 'daily' | 'muted'
      */
@@ -117,6 +187,8 @@
         if (!badge) {
             badge = document.createElement('span');
             badge.className = 'service-alert-badge';
+            badge.setAttribute('role', 'button');
+            badge.tabIndex = 0;
 
             const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             svg.setAttribute('class', 'service-alert-badge__icon');
@@ -125,12 +197,35 @@
             svg.appendChild(use);
             badge.appendChild(svg);
 
+            const cycleFrequency = async (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                const serviceName = serviceItem.getAttribute('data-service-name');
+                const current = badge.dataset.frequency || 'hourly';
+                const next = ALERT_FREQUENCIES[(ALERT_FREQUENCIES.indexOf(current) + 1) % ALERT_FREQUENCIES.length];
+                const ok = await persistAlertFrequency(serviceName, next);
+                if (!ok) return;
+                updateAlertBadge(serviceItem, next);
+                const control = document.getElementById('alertSettingsControl');
+                const select = control?.querySelector('.alert-frequency-select');
+                if (select && control.dataset.service === serviceName) {
+                    select.value = next;
+                    select.dataset.committed = next;
+                }
+            };
+            badge.addEventListener('click', cycleFrequency);
+            badge.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') cycleFrequency(event);
+            });
+
             grid.appendChild(badge);
         }
 
         const use = badge.querySelector('use');
+        badge.dataset.frequency = frequency;
         badge.classList.toggle('service-alert-badge--muted', frequency === 'muted');
         badge.setAttribute('aria-label', `Alert: ${frequency}`);
+        badge.title = `Alert: ${frequency} — click to change`;
         if (use) use.setAttribute('href', frequency === 'muted' ? '#icon-bell-off' : '#icon-bell');
     }
 
@@ -175,35 +270,47 @@
         select.addEventListener('change', async (e) => {
             const newFrequency = e.target.value;
             const prevFrequency = select.dataset.committed ?? 'hourly';
-            try {
-                const res = await fetch('/api/alert-settings', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ service: serviceName, frequency: newFrequency }),
-                });
-                if (!res.ok) {
-                    console.error('Failed to save alert setting, reverting');
-                    select.value = prevFrequency;
-                    return;
-                }
-                select.dataset.committed = newFrequency;
-                const sidebarItem = document.querySelector(`.service-item[data-service-name="${CSS.escape(serviceName)}"]`);
-                if (sidebarItem) updateAlertBadge(sidebarItem, newFrequency);
-            } catch (err) {
-                console.error('Failed to update alert setting:', err);
+            const ok = await persistAlertFrequency(serviceName, newFrequency);
+            if (!ok) {
+                console.error('Failed to save alert setting, reverting');
                 select.value = prevFrequency;
+                return;
             }
+            select.dataset.committed = newFrequency;
+            const sidebarItem = document.querySelector(`.service-item[data-service-name="${CSS.escape(serviceName)}"]`);
+            if (sidebarItem) updateAlertBadge(sidebarItem, newFrequency);
         });
 
         control.appendChild(select);
     }
 
-    // --- Click-to-sort: click the mem cell to sort the whole list by memory
-    // usage (descending, missing readings last); click it again to return to
-    // the default alphabetical/grouped order.
+    // --- Click-to-sort: click the mem or uptime cell to sort the whole list by that
+    // column (descending, missing readings last); click it again to return to the
+    // default alphabetical/grouped order.
 
-    let sortMode = null; // null | 'mem'
-    let latestMetricsByName = new Map(); // service name -> { memory_used_pct }
+    /** Convert a formatted uptime string like "2w 3d" or "3d 15h" to minutes, for sorting. */
+    function uptimeToMinutes(uptime) {
+        if (!uptime || uptime === '—') return null;
+        const weeks = /(\d+)w/.exec(uptime);
+        const days = /(\d+)d/.exec(uptime);
+        const hours = /(\d+)h/.exec(uptime);
+        const minutes = /(\d+)m/.exec(uptime);
+        if (!weeks && !days && !hours && !minutes) return null;
+        return (
+            (weeks ? Number(weeks[1]) * 7 * 24 * 60 : 0) +
+            (days ? Number(days[1]) * 24 * 60 : 0) +
+            (hours ? Number(hours[1]) * 60 : 0) +
+            (minutes ? Number(minutes[1]) : 0)
+        );
+    }
+
+    const SORT_FIELDS = {
+        mem: (metrics) => metrics.memory_used_pct,
+        uptime: (metrics) => uptimeToMinutes(metrics.uptime),
+    };
+
+    let sortMode = null; // null | 'mem' | 'uptime'
+    let latestMetricsByName = new Map(); // service name -> { memory_used_pct, uptime }
     let originalOrder = null; // [{ group, item }], captured once from the server-rendered order
     let sortHandlersBound = false;
 
@@ -217,9 +324,10 @@
         });
     }
 
-    function metricValueFor(serviceName) {
+    function sortValueFor(mode, serviceName) {
         const metrics = latestMetricsByName.get(serviceName);
-        return metrics ? metrics.memory_used_pct : null;
+        if (!metrics) return null;
+        return SORT_FIELDS[mode](metrics);
     }
 
     function applySort(nav) {
@@ -240,8 +348,8 @@
             });
         } else {
             const sorted = [...originalOrder].sort((a, b) => {
-                const va = metricValueFor(a.item.getAttribute('data-service-name'));
-                const vb = metricValueFor(b.item.getAttribute('data-service-name'));
+                const va = sortValueFor(sortMode, a.item.getAttribute('data-service-name'));
+                const vb = sortValueFor(sortMode, b.item.getAttribute('data-service-name'));
                 if (va == null && vb == null) return 0;
                 if (va == null) return 1;
                 if (vb == null) return -1;
@@ -262,9 +370,10 @@
         if (sortHandlersBound) return;
         sortHandlersBound = true;
         nav.addEventListener('click', (event) => {
-            const cell = event.target.closest('.service-mem');
+            const cell = event.target.closest('.service-mem, .service-uptime');
             if (!cell || !nav.contains(cell)) return;
-            sortMode = sortMode === 'mem' ? null : 'mem';
+            const mode = cell.classList.contains('service-mem') ? 'mem' : 'uptime';
+            sortMode = sortMode === mode ? null : mode;
             applySort(nav);
         });
     }
@@ -296,7 +405,7 @@
         }
 
         latestMetricsByName = new Map(
-            services.map((status) => [status.name, { memory_used_pct: status.memory_used_pct, memory_used_mb: status.memory_used_mb }]),
+            services.map((status) => [status.name, { memory_used_pct: status.memory_used_pct, memory_used_mb: status.memory_used_mb, uptime: status.uptime }]),
         );
 
         for (const status of services) {
@@ -307,6 +416,20 @@
         }
 
         applySort(nav);
+
+        // Backup status costs an rclone round-trip to R2 per project and can be noticeably
+        // slower — fetch it separately so it never holds up the rest of the sidebar, and fill
+        // in badges whenever it resolves.
+        fetch('/api/services/backup-status')
+            .then((res) => (res.ok ? res.json() : { services: [] }))
+            .then((backupPayload) => {
+                const backupStatuses = Array.isArray(backupPayload.services) ? backupPayload.services : [];
+                for (const status of backupStatuses) {
+                    const serviceItem = byName.get(status.name);
+                    if (serviceItem) updateBackupBadge(serviceItem, status);
+                }
+            })
+            .catch((err) => console.error('Failed to load backup status:', err));
     }
 
     window.ServiceMonitorSidebarDetails = {

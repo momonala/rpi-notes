@@ -10,7 +10,9 @@ from pathlib import Path
 from flask import Flask, Response, jsonify, redirect, render_template, request, stream_with_context, url_for
 from requests import RequestException
 
+from src.backup_status import backup_statuses_for_groups
 from src.canned_info import canned_service_statuses, canned_system_info, websites
+from src.r2_usage import fetch_r2_usage_summary
 from src.scheduler import (
     DEFAULT_ALERT_FREQUENCY,
     VALID_FREQUENCIES,
@@ -203,7 +205,12 @@ def update_alert_setting():
 
 @app.route("/api/services/sidebar-details")
 def sidebar_details():
-    """Return enriched service details for sidebar rendering after first paint."""
+    """Return enriched service details for sidebar rendering after first paint.
+
+    Excludes backup status: that requires an `rclone lsjson` round-trip to R2 per project and
+    can be noticeably slow, so it's served separately by `/api/services/backup-status` and the
+    frontend fills in the backup icons whenever that resolves instead of blocking on it here.
+    """
     if not is_linux():
         return jsonify({"services": []})
 
@@ -226,6 +233,69 @@ def sidebar_details():
         for status in detailed_statuses
     ]
     return jsonify({"services": payload})
+
+
+@app.route("/api/services/backup-status")
+def services_backup_status():
+    """Return per-project cloud-backup status, fetched separately from sidebar-details since
+    it costs an `rclone lsjson` round-trip to R2 per project and shouldn't block the rest of
+    the sidebar from rendering."""
+    if not is_linux():
+        return jsonify({"services": []})
+
+    services = get_services()
+    detailed_statuses = _collect_statuses(services, detailed=True)
+    try:
+        backup_by_group = backup_statuses_for_groups(
+            sorted({status.project_group for status in detailed_statuses})
+        )
+    except Exception:
+        logger.exception("Failed to compute backup status")
+        backup_by_group = {}
+
+    payload = []
+    for status in detailed_statuses:
+        # One backup icon per project, not per service — same rule as ci_status (services.py's
+        # get_service_status only fetches CI for the suffix-less, non-timer unit).
+        is_primary = status.suffix is None and not status.name.endswith(".timer")
+        backup = backup_by_group.get(status.project_group) if is_primary else None
+        if backup is None:
+            continue
+        payload.append(
+            {
+                "name": status.name,
+                "backup_status": backup.status,
+                "backup_stale_seconds": backup.stale_seconds,
+            }
+        )
+    return jsonify({"services": payload})
+
+
+@app.route("/api/r2-usage")
+def r2_usage():
+    """Return this month's Cloudflare R2 usage (storage, Class A/B requests) against the free tier.
+
+    `null` fields mean usage is unavailable (no Cloudflare token configured, or the API call
+    failed) — the dashboard hides the row rather than showing a wrong number.
+    """
+    try:
+        summary = fetch_r2_usage_summary()
+    except Exception:
+        logger.exception("Failed to fetch R2 usage")
+        summary = None
+
+    if summary is None:
+        return jsonify(
+            {
+                "storage_bytes": None,
+                "storage_pct": None,
+                "class_a_requests": None,
+                "class_a_pct": None,
+                "class_b_requests": None,
+                "class_b_pct": None,
+            }
+        )
+    return jsonify(asdict(summary))
 
 
 @app.route("/api/system-info")

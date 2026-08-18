@@ -11,7 +11,6 @@
     const DEFAULT_ROLLUP = '30s';
     const VALID_WINDOWS = new Set(['1h', '6h', '24h', '7d']);
     const VALID_ROLLUPS = new Set(['30s', '2m', '10m', '30m']);
-    const STORAGE_COLLAPSED = 'servicemonitor:system-chart-collapsed';
     const STORAGE_ROLLUP = 'servicemonitor:system-chart-rollup';
     const SHARED_Y_AXIS = 'y';
     const TOOLTIP_MONO = "'SF Mono', Monaco, 'Cascadia Code', Consolas, monospace";
@@ -55,12 +54,7 @@
     let chart = null;
     let activeWindow = DEFAULT_WINDOW;
     let activeRollup = DEFAULT_ROLLUP;
-    let isCollapsed = false;
     const visibleSeries = Object.fromEntries(SERIES_ORDER.map((id) => [id, true]));
-
-    function loadCollapsedState() {
-        return readLocal(STORAGE_COLLAPSED) === 'true';
-    }
 
     function loadRollupState() {
         const saved = readLocal(STORAGE_ROLLUP);
@@ -86,26 +80,6 @@
     function startChartPolling() {
         stopChartPolling();
         chartTimer = setInterval(refreshChartSafely, CHART_REFRESH_INTERVAL);
-    }
-
-    function setCollapsed(root, collapsed) {
-        isCollapsed = collapsed;
-        root.classList.toggle('system-chart--collapsed', collapsed);
-        const btn = root.querySelector('#systemChartCollapse');
-        if (btn) {
-            btn.setAttribute('aria-expanded', String(!collapsed));
-            btn.title = collapsed ? 'Expand history chart' : 'Collapse history chart';
-        }
-        writeLocal(STORAGE_COLLAPSED, String(collapsed));
-
-        if (collapsed) {
-            stopChartPolling();
-            return;
-        }
-        if (!chart) return;
-        chart.resize();
-        refreshChartSafely();
-        startChartPolling();
     }
 
     function tooltipMetricRow(label, avgValue, maxValue) {
@@ -340,10 +314,6 @@
     }
 
     function bindChartControls(root) {
-        root.querySelector('#systemChartCollapse')?.addEventListener('click', () => {
-            setCollapsed(root, !isCollapsed);
-        });
-
         root.querySelectorAll('.system-chart__toggle').forEach((btn) => {
             btn.addEventListener('click', () => {
                 const id = btn.dataset.series;
@@ -397,7 +367,8 @@
         syncChoiceGroup(root, '.system-chart__range', 'window', activeWindow);
         bindChartControls(root);
         applySeriesVisibility();
-        setCollapsed(root, loadCollapsedState());
+        refreshChartSafely();
+        startChartPolling();
     }
 
     window.ServiceMonitorSystemMetricsChart = { init };

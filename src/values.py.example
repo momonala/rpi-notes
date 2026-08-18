@@ -10,3 +10,6 @@ GITHUB_TOKEN = "ghp_dummy_token_for_testing"
 
 INSPECTOR_DETECTOR_UV_PATH = "/usr/bin/uv"
 INSPECTOR_DETECTOR_CWD = "/tmp/inspector_detector"
+
+CLOUDFLARE_ACCOUNT_ID = "0000000000000000000000000000000"
+CLOUDFLARE_API_TOKEN = "dummy_cloudflare_api_token_for_testing"

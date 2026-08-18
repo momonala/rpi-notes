@@ -32,8 +32,8 @@
     --sidebar-collapsed-width: 4rem;
     --header-height:           3.5rem;
     --status-icon-size:        14px;
-    --service-uptime-col:      4.5ch;
-    --service-metric-col:      10ch;
+    --service-uptime-col:      3.75ch;
+    --service-metric-col:      7ch;
 
     /* Spacing */
     --spacing-xs: 0.25rem;
@@ -277,7 +277,7 @@ textarea:focus-visible {
     background: rgba(255, 255, 255, 0.09);
 }
 
-/* single row: [status] [ci] [alert] [mem%] [time] [name] */
+/* single row: [status] [ci] [alert] [backup] [mem%] [time] [name] */
 .service-link {
     display: contents;
     text-decoration: none;
@@ -287,6 +287,7 @@ textarea:focus-visible {
 .service-item-grid {
     display: grid;
     grid-template-columns:
+        var(--status-icon-size)
         var(--status-icon-size)
         var(--status-icon-size)
         var(--status-icon-size)
@@ -304,8 +305,9 @@ textarea:focus-visible {
 }
 
 .service-name {
-    grid-column: 6;
+    grid-column: 7;
     grid-row: 1;
+    margin-left: -0.2rem;
     white-space: nowrap;
     font-size: var(--font-size-sm);
     font-weight: 500;
@@ -330,6 +332,19 @@ textarea:focus-visible {
 .service-details__item--ci-failure { color: var(--color-status-failed); }
 .service-details__item--ci-pending { color: var(--color-warning); }
 
+.service-details__item--backup {
+    grid-column: 4;
+    grid-row: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
+.service-details__item--backup-green  { color: var(--color-status-active); }
+.service-details__item--backup-yellow { color: var(--color-warning); }
+.service-details__item--backup-red    { color: var(--color-status-failed); }
+
 .service-details__icon {
     width: var(--status-icon-size);
     height: var(--status-icon-size);
@@ -339,7 +354,7 @@ textarea:focus-visible {
 
 .service-mem {
     grid-row: 1;
-    grid-column: 4;
+    grid-column: 5;
     /* Flush-start, like the icon columns to their left — an end-justified flex
        group would shift position row to row as the digit count of the value
        changes (e.g. "3.7%" vs "12.2%"), breaking column alignment. */
@@ -353,16 +368,17 @@ textarea:focus-visible {
     cursor: pointer;
 }
 
-.service-mem:hover .service-metric__value {
-    text-decoration: underline;
-}
-
 /* Fixed width so the badge's own footprint doesn't change with digit count —
    otherwise the trailing margin before the next column varies row to row. */
 .service-metric__value {
     display: inline-block;
     width: 7ch;
     text-align: left;
+    color: var(--color-text-primary);
+}
+
+.service-metric__pct {
+    color: var(--color-text-muted);
 }
 
 .service-metric__icon {
@@ -372,32 +388,38 @@ textarea:focus-visible {
     display: block;
 }
 
-/* Text color reflects usage level; no box/border at any level. */
-.service-metric--ok { color: var(--color-text-muted); }
-.service-metric--warn { color: var(--color-warning); }
-.service-metric--crit { color: var(--color-status-failed); }
-.service-metric--empty { color: var(--color-text-muted); }
+/* Ok/empty states use the amount/pct split above; warn/crit override both to
+   the same alert color so a problem reading is unmistakable. */
+.service-metric--empty .service-metric__value { color: var(--color-text-muted); }
 
-/* Underline the value when the list is sorted by memory usage. */
-.sidebar__nav[data-sort-mode="mem"] .service-mem .service-metric__value {
-    text-decoration: underline;
-}
+.service-metric--warn .service-metric__amount,
+.service-metric--warn .service-metric__pct { color: var(--color-warning); }
+
+.service-metric--crit .service-metric__amount,
+.service-metric--crit .service-metric__pct { color: var(--color-status-failed); }
 
 .project-group[hidden] {
     display: none;
 }
 
 .service-uptime {
-    grid-column: 5;
+    grid-column: 6;
     grid-row: 1;
     /* Fill the full column (default grid stretch) instead of shrinking to
-       content — flush-start like the icon/metric columns to its left, but
-       with a stable box so the text's own width change doesn't wobble as
-       the value ticks over (e.g. "3d 23h" -> "4d 0h"). */
-    text-align: left;
+       content, with a stable box so the text's own width change doesn't
+       wobble as the value ticks over (e.g. "3d 23h" -> "4d 0h"). Centered
+       so leftover space splits evenly instead of piling up on one side. */
+    text-align: center;
+    margin-left: 0.5rem;
     font-size: var(--font-size-xs);
-    color: var(--color-text-muted);
+    color: var(--color-accent);
     white-space: nowrap;
+    cursor: pointer;
+}
+
+/* Underline the value when the list is sorted by uptime. */
+.sidebar__nav[data-sort-mode="uptime"] .service-uptime {
+    text-decoration: underline;
 }
 
 .service-alert-badge {
@@ -407,6 +429,11 @@ textarea:focus-visible {
     align-items: center;
     justify-content: center;
     color: var(--color-status-active);
+    cursor: pointer;
+}
+
+.service-alert-badge:hover {
+    color: var(--color-text-primary);
 }
 
 .service-alert-badge--muted {
@@ -566,7 +593,7 @@ textarea:focus-visible {
 
 /* Close button only on mobile */
 .sidebar__close {
-    margin-left: auto;
+    flex-shrink: 0;
 }
 
 @media (min-width: 640px) {
@@ -707,6 +734,60 @@ textarea:focus-visible {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
     gap: var(--spacing-md);
+}
+
+@media (max-width: 639px) {
+    /* Force a fixed column count (rather than auto-fit/minmax) so these grids always render
+       as a single row on narrow phones — cards shrink to fit instead of wrapping. */
+    #systemMetrics.metric-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    #r2Usage.metric-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .metric-grid {
+        gap: var(--spacing-xs);
+    }
+
+    .metric-grid .metric {
+        padding: var(--spacing-sm) var(--spacing-xs);
+        min-width: 0;
+    }
+
+    .metric-grid .metric__label,
+    .metric-grid .metric__sub {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .metric-grid .metric__value {
+        font-size: var(--font-size-sm);
+    }
+
+    .metric-grid .metric__label {
+        font-size: 0.5625rem;
+    }
+
+    .metric-grid .metric__sub {
+        font-size: 0.5625rem;
+    }
+
+    .system-chart__y-label {
+        display: none;
+    }
+
+    .content-body {
+        padding-left: var(--spacing-sm);
+        padding-right: var(--spacing-sm);
+    }
+
+    .system-chart {
+        padding-left: var(--spacing-sm);
+        padding-right: var(--spacing-sm);
+    }
 }
 
 /* Only two tiles (cpu/memory) in the wide main content column — compact,
@@ -909,11 +990,11 @@ textarea:focus-visible {
 }
 
 .system-chart__toolbar {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: auto 1fr;
     align-items: center;
-    justify-content: space-between;
-    gap: var(--spacing-sm);
+    row-gap: 0.4rem;
+    column-gap: 0.75rem;
     margin-bottom: var(--spacing-md);
 }
 
@@ -925,26 +1006,17 @@ textarea:focus-visible {
     gap: 0.25rem;
 }
 
-.system-chart__filters {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.25rem;
-}
-
 .system-chart__filter {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    display: contents;
 }
 
 .system-chart__filter-label {
+    grid-column: 1;
     color: var(--color-text-muted);
     font-size: var(--font-size-xs);
     font-weight: 500;
     letter-spacing: 0.02em;
     white-space: nowrap;
-    min-width: 5.5rem;
     text-align: right;
 }
 
@@ -970,7 +1042,8 @@ textarea:focus-visible {
 .system-chart__range,
 .system-chart__rollup {
     box-sizing: border-box;
-    width: 2.75rem;
+    width: 3.25rem;
+    padding-block: 0.4rem;
     padding-inline: 0;
     text-align: center;
 }
