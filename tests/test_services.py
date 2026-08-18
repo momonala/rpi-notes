@@ -35,7 +35,7 @@ def reset_service_caches():
     "status_text,expected",
     [
         ("Active: active (running) since Mon; 4 days ago", "4d"),
-        ("Active: active (running) since Mon; 2h 15min ago", "2h 15m"),
+        ("Active: active (running) since Mon; 2h 15min ago", "2h"),
         ("Active: inactive (dead) since Mon; 4 days ago", None),
         ("", None),
     ],
@@ -159,14 +159,14 @@ def test_get_service_status(mock_get_info):
     )
     status = get_service_status("projects_test_ping.timer")
     assert status.is_active and not status.is_failed
-    assert status.uptime == "1d 2h"
+    assert status.uptime == "1d"
     assert status.project_group == "test"
 
 
 @pytest.mark.parametrize(
     "status_text,expected",
     [
-        ("Trigger: Thu 2025-06-19 10:00:00 UTC; 1 day 2h left\n", "1d 2h"),
+        ("Trigger: Thu 2025-06-19 10:00:00 UTC; 1 day 2h left\n", "1d"),
         ("Active: active (waiting) since Mon; 5 days ago\n", None),
     ],
 )
@@ -304,14 +304,14 @@ def test_get_ci_status_uses_cache(mock_get):
 @pytest.mark.parametrize(
     "uptime_text,expected",
     [
-        ("532800.00 100.0", "6d 4h"),  # 6 days 4 hours
-        ("3661.0 10.0", "1h 1m"),
+        ("532800.00 100.0", "6d"),  # 6 days 4 hours
+        ("3661.0 10.0", "1h"),
         ("90.0 1.0", "1m"),
         ("5.0 0.0", "0m"),
     ],
 )
 def test_read_uptime(monkeypatch, uptime_text, expected):
-    """Uptime is formatted to at most two compact units, days suppressing minutes."""
+    """Uptime is formatted to a single compact unit."""
     monkeypatch.setattr(services_module.Path, "read_text", lambda self: uptime_text)
     assert services_module._read_uptime() == expected
 

@@ -137,7 +137,7 @@ def get_services(use_cache: bool = True) -> list[str]:
 
 
 def _format_uptime(raw: str) -> str:
-    """Convert systemd duration like '2 days 3h 15min 4s' to '2d 3h', capped at 2 parts."""
+    """Convert systemd duration like '2 days 3h 15min 4s' to a single unit, e.g. '2d'."""
     weeks_match = re.search(r"(\d+)\s*week", raw)
     days_match = re.search(r"(\d+)\s*day", raw)
     hours_match = re.search(r"(\d+)\s*h", raw)
@@ -148,16 +148,15 @@ def _format_uptime(raw: str) -> str:
     w = explicit_weeks + total_days // 7
     d = total_days % 7
 
-    parts = []
     if w:
-        parts.append(f"{w}w")
+        return f"{w}w"
     if d:
-        parts.append(f"{d}d")
+        return f"{d}d"
     if hours_match:
-        parts.append(f"{hours_match.group(1)}h")
+        return f"{hours_match.group(1)}h"
     if minutes_match:
-        parts.append(f"{minutes_match.group(1)}m")
-    return " ".join(parts[:2]) if parts else raw
+        return f"{minutes_match.group(1)}m"
+    return raw
 
 
 def parse_uptime(status_text: str) -> str | None:
@@ -453,7 +452,7 @@ def get_system_info() -> SystemInfo:
 
 
 def _read_uptime() -> str | None:
-    """Host uptime as a compact human string (e.g. '3d 4h'), from /proc/uptime."""
+    """Host uptime as a compact human string (e.g. '3d'), from /proc/uptime."""
     try:
         seconds = float(Path("/proc/uptime").read_text().split()[0])
     except (OSError, ValueError, IndexError):
@@ -461,11 +460,8 @@ def _read_uptime() -> str | None:
     minutes, _ = divmod(int(seconds), 60)
     hours, minutes = divmod(minutes, 60)
     days, hours = divmod(hours, 24)
-    parts = []
     if days:
-        parts.append(f"{days}d")
+        return f"{days}d"
     if hours:
-        parts.append(f"{hours}h")
-    if minutes and not days:
-        parts.append(f"{minutes}m")
-    return " ".join(parts[:2]) if parts else "0m"
+        return f"{hours}h"
+    return f"{minutes}m"

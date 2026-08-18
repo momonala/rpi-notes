@@ -226,9 +226,15 @@ def sidebar_details():
             "last_error": status.last_error,
             "ci_status": status.ci_status,
             "project_group": status.project_group,
-            "cpu_percent": latest_metrics.get(status.name, {}).get("cpu_percent"),
-            "memory_used_pct": latest_metrics.get(status.name, {}).get("memory_used_pct"),
-            "memory_used_mb": latest_metrics.get(status.name, {}).get("memory_used_mb"),
+            # Stored samples are only refreshed while a unit is running, so a stopped
+            # oneshot/backup service would otherwise keep showing its last-run reading forever.
+            "cpu_percent": latest_metrics.get(status.name, {}).get("cpu_percent") if status.is_active else None,
+            "memory_used_pct": (
+                latest_metrics.get(status.name, {}).get("memory_used_pct") if status.is_active else None
+            ),
+            "memory_used_mb": (
+                latest_metrics.get(status.name, {}).get("memory_used_mb") if status.is_active else None
+            ),
         }
         for status in detailed_statuses
     ]
@@ -347,7 +353,12 @@ def service_current():
     if is_linux() and service not in get_services():
         return jsonify({"error": f"unknown service: {service}"}), 400
     try:
-        return jsonify(latest_service_sample_payload(service))
+        payload = latest_service_sample_payload(service)
+        if is_linux() and not get_service_health(service).is_active:
+            payload["cpu_percent"] = None
+            payload["memory_used_pct"] = None
+            payload["memory_used_mb"] = None
+        return jsonify(payload)
     except Exception:
         logger.exception("Failed to load current service metrics")
         return jsonify({"error": "failed to load current service metrics"}), 500

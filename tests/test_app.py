@@ -182,6 +182,39 @@ def test_sidebar_details_backup_status_only_on_primary_service(
     assert "projects_energy-monitor_mqtt.service" not in payload
 
 
+@patch("src.app.latest_service_samples_payload")
+@patch("src.app.is_linux", return_value=True)
+@patch("src.app.get_services", return_value=["projects_backup.service"])
+@patch("src.app.get_service_status")
+def test_sidebar_details_inactive_service_hides_stale_metrics(
+    mock_get_status, mock_get_services, mock_is_linux, mock_latest_metrics, client
+):
+    """A oneshot/backup service that finished running is inactive, but its last sample from
+    when it was active is still in the DB. The sidebar must not surface that stale reading."""
+    mock_get_status.return_value = ServiceStatus(
+        name="projects_backup.service",
+        is_active=False,
+        is_failed=False,
+        uptime=None,
+        memory=None,
+        cpu=None,
+        last_error=None,
+        full_status="",
+        project_group="backup",
+        suffix=None,
+        ci_status=None,
+    )
+    mock_latest_metrics.return_value = {
+        "projects_backup.service": {"cpu_percent": 4.2, "memory_used_pct": 8.5, "memory_used_mb": 120}
+    }
+
+    response = client.get("/api/services/sidebar-details")
+    payload = response.get_json()
+    assert payload["services"][0]["cpu_percent"] is None
+    assert payload["services"][0]["memory_used_pct"] is None
+    assert payload["services"][0]["memory_used_mb"] is None
+
+
 @patch("src.app.latest_service_samples_payload", return_value={})
 @patch("src.app.is_linux", return_value=True)
 @patch("src.app.get_services", return_value=["projects_test1.service"])
@@ -208,6 +241,43 @@ def test_sidebar_details_missing_metrics_are_null(
     payload = response.get_json()
     assert payload["services"][0]["cpu_percent"] is None
     assert payload["services"][0]["memory_used_pct"] is None
+
+
+@patch("src.app.latest_service_sample_payload")
+@patch("src.app.get_service_health")
+@patch("src.app.is_linux", return_value=True)
+@patch("src.app.get_services", return_value=["projects_backup.service"])
+def test_service_current_inactive_service_hides_stale_metrics(
+    mock_get_services, mock_is_linux, mock_get_health, mock_payload, client
+):
+    """Same staleness fix as the sidebar, for the per-service detail view's live tiles."""
+    mock_get_health.return_value = ServiceStatus(
+        name="projects_backup.service",
+        is_active=False,
+        is_failed=False,
+        uptime=None,
+        memory=None,
+        cpu=None,
+        last_error=None,
+        full_status="",
+        project_group="backup",
+        suffix=None,
+        ci_status=None,
+    )
+    mock_payload.return_value = {
+        "service": "projects_backup.service",
+        "cpu_percent": 4.2,
+        "memory_used_pct": 8.5,
+        "memory_used_mb": 120,
+        "memory_total_mb": 4096,
+    }
+
+    response = client.get("/api/services/current", query_string={"service": "projects_backup.service"})
+    payload = response.get_json()
+    assert payload["cpu_percent"] is None
+    assert payload["memory_used_pct"] is None
+    assert payload["memory_used_mb"] is None
+    assert payload["memory_total_mb"] == 4096
 
 
 @patch("src.app.is_linux", return_value=True)

@@ -412,7 +412,7 @@ textarea:focus-visible {
     text-align: center;
     margin-left: 0.5rem;
     font-size: var(--font-size-xs);
-    color: var(--color-accent);
+    color: var(--color-text-primary);
     white-space: nowrap;
     cursor: pointer;
 }
