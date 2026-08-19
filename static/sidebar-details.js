@@ -139,11 +139,15 @@
         if (!status.backup_status) return;
 
         const backupLink = document.createElement('a');
-        backupLink.className = `service-details__item service-details__item--backup service-details__item--backup-${status.backup_status}`;
+        backupLink.className = `service-details__item service-details__item--backup service-details__item--backup-${status.backup_status}${
+            status.backup_stale ? ' service-details__item--backup-stale' : ''
+        }`;
         backupLink.href = CLOUDFLARE_R2_DASHBOARD_URL;
         backupLink.target = '_blank';
         backupLink.rel = 'noopener';
-        backupLink.title = `Cloud backup: last known-good backup ${formatStaleAge(status.backup_stale_seconds)} old`;
+        backupLink.title = status.backup_stale
+            ? `Cloud backup: last known-good backup ${formatStaleAge(status.backup_stale_seconds)} old, source has changed since`
+            : `Cloud backup: last known-good backup ${formatStaleAge(status.backup_stale_seconds)} old`;
         const backupSvg = buildIcon('cloud');
         backupSvg.setAttribute('aria-label', `Backup ${status.backup_status}`);
         backupSvg.removeAttribute('aria-hidden');
