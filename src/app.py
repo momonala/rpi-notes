@@ -228,7 +228,9 @@ def sidebar_details():
             "project_group": status.project_group,
             # Stored samples are only refreshed while a unit is running, so a stopped
             # oneshot/backup service would otherwise keep showing its last-run reading forever.
-            "cpu_percent": latest_metrics.get(status.name, {}).get("cpu_percent") if status.is_active else None,
+            "cpu_percent": (
+                latest_metrics.get(status.name, {}).get("cpu_percent") if status.is_active else None
+            ),
             "memory_used_pct": (
                 latest_metrics.get(status.name, {}).get("memory_used_pct") if status.is_active else None
             ),
