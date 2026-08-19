@@ -172,7 +172,7 @@ def test_sidebar_details_backup_status_only_on_primary_service(
 
     mock_get_status.side_effect = status_for
     mock_backup_statuses.return_value = {
-        "energy-monitor": BackupStatus(status="green", stale_seconds=60.0, db_count=1)
+        "energy-monitor": BackupStatus(status="green", stale_seconds=60.0, stale=False, db_count=1)
     }
 
     response = client.get("/api/services/backup-status")

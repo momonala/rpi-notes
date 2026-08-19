@@ -105,43 +105,48 @@ def test_status_for_db_green_when_intact_and_unchanged(tmp_path):
     db_path.write_bytes(b"hello")
     entry = _entry(md5="abc123", fingerprint=_local_fingerprint(db_path))
 
-    status, _ = _status_for_db(
+    status, _, is_stale = _status_for_db(
         datetime.now(timezone.utc), tmp_path, "repo/data/a.db", entry, {"data/a.db": "abc123"}
     )
 
     assert status == "green"
+    assert is_stale is False
 
 
-def test_status_for_db_yellow_when_changed_but_recent(tmp_path):
+def test_status_for_db_green_and_stale_when_changed_since_backup(tmp_path):
+    """Last backup succeeded, but the source has moved on — still green, just flagged stale."""
     db_path = tmp_path / "repo" / "data" / "a.db"
     db_path.parent.mkdir(parents=True)
     db_path.write_bytes(b"hello")
     entry = _entry(md5="abc123", fingerprint="stale-fingerprint", hours_ago=1.0)
 
-    status, _ = _status_for_db(
+    status, _, is_stale = _status_for_db(
         datetime.now(timezone.utc), tmp_path, "repo/data/a.db", entry, {"data/a.db": "abc123"}
     )
 
-    assert status == "yellow"
+    assert status == "green"
+    assert is_stale is True
 
 
-def test_status_for_db_red_when_changed_and_stale(tmp_path):
+def test_status_for_db_stays_green_and_stale_even_when_old(tmp_path):
+    """No more age-based escalation to red — staleness is reported via the flag, not color."""
     db_path = tmp_path / "repo" / "data" / "a.db"
     db_path.parent.mkdir(parents=True)
     db_path.write_bytes(b"hello")
     entry = _entry(md5="abc123", fingerprint="stale-fingerprint", hours_ago=25.0)
 
-    status, _ = _status_for_db(
+    status, _, is_stale = _status_for_db(
         datetime.now(timezone.utc), tmp_path, "repo/data/a.db", entry, {"data/a.db": "abc123"}
     )
 
-    assert status == "red"
+    assert status == "green"
+    assert is_stale is True
 
 
 def test_status_for_db_red_when_remote_hash_missing(tmp_path):
     entry = _entry(md5="abc123", hours_ago=0.1)
 
-    status, _ = _status_for_db(datetime.now(timezone.utc), tmp_path, "repo/data/a.db", entry, {})
+    status, _, _ = _status_for_db(datetime.now(timezone.utc), tmp_path, "repo/data/a.db", entry, {})
 
     assert status == "red"
 
@@ -149,7 +154,7 @@ def test_status_for_db_red_when_remote_hash_missing(tmp_path):
 def test_status_for_db_red_when_remote_hash_mismatched(tmp_path):
     entry = _entry(md5="abc123", hours_ago=0.1)
 
-    status, _ = _status_for_db(
+    status, _, _ = _status_for_db(
         datetime.now(timezone.utc), tmp_path, "repo/data/a.db", entry, {"data/a.db": "different-hash"}
     )
 
@@ -162,15 +167,31 @@ def test_backup_statuses_for_groups_reports_worst_db_per_group(mock_read_manifes
     """A project owning multiple dbs reports the worst (reddest) status across all of them."""
     mock_read_manifest.return_value = {
         "repo-a/data/current.db": _entry(md5="ok", hours_ago=0.1),
-        "repo-a/data/stale.db": _entry(md5="ok", fingerprint="changed", hours_ago=25.0),
+        "repo-a/data/broken.db": _entry(md5="ok", hours_ago=25.0),
     }
-    mock_fetch_hashes.return_value = {"data/current.db": "ok", "data/stale.db": "ok"}
+    mock_fetch_hashes.return_value = {"data/current.db": "ok"}  # broken.db missing from R2
 
     result = backup_statuses_for_groups(["repo-a", "repo-with-no-dbs"])
 
     assert result["repo-a"].status == "red"
     assert result["repo-a"].db_count == 2
     assert "repo-with-no-dbs" not in result
+
+
+@patch("src.backup_status._fetch_remote_hashes")
+@patch("src.backup_status._read_manifest")
+def test_backup_statuses_for_groups_stale_flag_is_any_db_stale(mock_read_manifest, mock_fetch_hashes):
+    """The group is flagged stale if any of its dbs has changed locally since its backup."""
+    mock_read_manifest.return_value = {
+        "repo-a/data/current.db": _entry(md5="ok", fingerprint=None, hours_ago=0.1),
+        "repo-a/data/changed.db": _entry(md5="ok", fingerprint="changed", hours_ago=0.1),
+    }
+    mock_fetch_hashes.return_value = {"data/current.db": "ok", "data/changed.db": "ok"}
+
+    result = backup_statuses_for_groups(["repo-a"])
+
+    assert result["repo-a"].status == "green"
+    assert result["repo-a"].stale is True
 
 
 @patch("src.backup_status._fetch_remote_hashes")

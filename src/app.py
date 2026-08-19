@@ -272,6 +272,7 @@ def services_backup_status():
                 "name": status.name,
                 "backup_status": backup.status,
                 "backup_stale_seconds": backup.stale_seconds,
+                "backup_stale": backup.stale,
             }
         )
     return jsonify({"services": payload})

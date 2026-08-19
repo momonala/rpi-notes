@@ -6,10 +6,12 @@ can own zero, one, or many SQLite dbs (see the manifest's `<repo>/data/...` keys
 status is the worst of its dbs.
 
 Status per db:
-- green:  the last backup R2 holds is intact, and the source file hasn't changed since.
-- yellow: the source file has changed since the last backup, but that backup is under 24h old.
-- red:    the last backup is missing/corrupted in R2, or the source has changed and the backup
-          is 24h+ old.
+- green: the last backup R2 holds is intact (hash matches what backup.sh uploaded).
+- red:   the last backup is missing or corrupted in R2.
+
+Independent of that pass/fail status, a db is also flagged `stale` when its local file has
+changed since that last backup was taken — i.e. a newer cycle hasn't run yet. This is rendered
+as a subtle marker on the icon rather than its own color, since it doesn't mean anything failed.
 """
 
 import json
@@ -24,10 +26,9 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 MANIFEST_PATH = Path.home() / ".local" / "state" / "db-backup-r2" / "manifest.tsv"
-STALE_AFTER_SECONDS = 24 * 3600
 CACHE_TTL_SECONDS = 60.0
 MAX_LSJSON_WORKERS = 8
-_STATUS_RANK = {"green": 0, "yellow": 1, "red": 2}
+_STATUS_RANK = {"green": 0, "red": 1}
 
 _cache: tuple[float, dict[str, "BackupStatus"]] | None = None
 
@@ -41,8 +42,9 @@ class ManifestEntry:
 
 @dataclass
 class BackupStatus:
-    status: str  # "green" | "yellow" | "red"
+    status: str  # "green" | "red"
     stale_seconds: float  # age of the db's last known-good backup
+    stale: bool  # source file has changed locally since that backup was taken
     db_count: int
 
 
@@ -117,16 +119,19 @@ def _fetch_remote_hashes(repo: str) -> dict[str, str]:
 
 def _status_for_db(
     now: datetime, home: Path, key: str, entry: ManifestEntry, remote_hashes: dict[str, str]
-) -> tuple[str, float]:
-    """Return (status, stale_seconds) for one manifest key, given its repo's remote hash listing."""
+) -> tuple[str, float, bool]:
+    """Return (status, stale_seconds, is_stale) for one manifest key.
+
+    `status` reflects only whether the upload backup.sh already made is intact in R2.
+    `is_stale` is separate: whether the source has changed locally since that upload, i.e.
+    a newer cycle hasn't captured it yet. A db can be green-and-stale (last backup fine,
+    next one just hasn't run) or red-and-stale.
+    """
     rel_key = key.split("/", 1)[1]
     age_seconds = (now - datetime.fromisoformat(entry.uploaded_at)).total_seconds()
-
-    if remote_hashes.get(rel_key) != entry.uploaded_md5:
-        return "red", age_seconds
-    if _local_fingerprint(home / key) == entry.fingerprint:
-        return "green", age_seconds
-    return ("yellow" if age_seconds < STALE_AFTER_SECONDS else "red"), age_seconds
+    status = "green" if remote_hashes.get(rel_key) == entry.uploaded_md5 else "red"
+    is_stale = _local_fingerprint(home / key) != entry.fingerprint
+    return status, age_seconds, is_stale
 
 
 def backup_statuses_for_groups(project_groups: list[str]) -> dict[str, BackupStatus]:
@@ -158,14 +163,17 @@ def backup_statuses_for_groups(project_groups: list[str]) -> dict[str, BackupSta
     result = {}
     for group, keys in keys_by_group.items():
         remote_hashes = remote_hashes_by_group[group]
-        worst_status, worst_age = "green", 0.0
+        worst_status, worst_age, any_stale = "green", 0.0, False
         for key in keys:
-            status, age_seconds = _status_for_db(now, home, key, manifest[key], remote_hashes)
+            status, age_seconds, is_stale = _status_for_db(now, home, key, manifest[key], remote_hashes)
+            any_stale = any_stale or is_stale
             is_worse = _STATUS_RANK[status] > _STATUS_RANK[worst_status]
             is_same_and_staler = status == worst_status and age_seconds > worst_age
             if is_worse or is_same_and_staler:
                 worst_status, worst_age = status, age_seconds
-        result[group] = BackupStatus(status=worst_status, stale_seconds=worst_age, db_count=len(keys))
+        result[group] = BackupStatus(
+            status=worst_status, stale_seconds=worst_age, stale=any_stale, db_count=len(keys)
+        )
 
     _cache = (now_monotonic, result)
     return result
