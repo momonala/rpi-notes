@@ -6,10 +6,6 @@ Web dashboard for monitoring and managing systemd services on a Raspberry Pi.
 
 ![Service Monitor Dashboard](static/screenshot.png)
 
-## Tech Stack
-
-`Python 3.12, Flask, systemd/systemctl, vanilla JS, Inter (Google Fonts)`
-
 ## Architecture
 
 ```mermaid
@@ -108,9 +104,12 @@ service-monitor/
 │   ├── services.py     # systemd querying, ServiceStatus parsing, CI status
 │   ├── scheduler.py    # Background health check + per-service alert frequency; starts the metrics sampler
 │   ├── system_metrics.py # 1Hz host + 30s per-service metric sampler; SQLite persistence + history queries
+│   ├── backup_status.py # Per-project cloud-backup freshness, read from ~/backup-db-cloudflare-r2's manifest
+│   ├── r2_usage.py     # Cloudflare R2 usage for the current billing month, vs. the free tier
 │   ├── telegram.py     # Shared Telegram transport; service-failure message formatting
 │   ├── canned_info.py  # Static website links + canned ServiceStatus fixtures for dev/testing
 │   ├── values.py       # Loads secrets from .env (python-dotenv)
+│   ├── values.py.example # Stub secrets used in CI
 │   └── config.py       # CLI tool that reads pyproject.toml config values
 ├── templates/
 │   └── index.html      # Main dashboard template (Jinja2)
@@ -155,6 +154,8 @@ Copy `.env.example` to `.env` and fill in values:
 | `GITHUB_TOKEN` | No | GitHub PAT for CI status; unauthenticated rate limit applies if omitted |
 | `INSPECTOR_DETECTOR_UV_PATH` | No | Path to `uv` binary on Pi (default: `/home/mnalavadi/.local/bin/uv`) |
 | `INSPECTOR_DETECTOR_CWD` | No | Working directory for inspector-detector check (default: `/home/mnalavadi/inspector_detector`) |
+| `CLOUDFLARE_ACCOUNT_ID` | No | Cloudflare account ID for R2 usage reporting; `/api/r2-usage` returns nulls if omitted |
+| `CLOUDFLARE_API_TOKEN` | No | Cloudflare API token for R2 usage reporting; `/api/r2-usage` returns nulls if omitted |
 
 ## API Endpoints
 
@@ -165,8 +166,11 @@ Copy `.env.example` to `.env` and fill in values:
 | `/restart` | POST | Restart a service (validated against known services) |
 | `/logs/stream` | GET (SSE) | Server-sent events stream of journalctl output for a service |
 | `/api/services/sidebar-details` | GET | JSON: enriched status + CI for all services (loaded async after first paint) |
+| `/api/services/backup-status` | GET | JSON: per-project cloud-backup freshness (`green`/`yellow`/`red`), loaded separately since it costs an R2 round-trip per project |
+| `/api/r2-usage` | GET | JSON: this month's Cloudflare R2 usage vs. the free tier; nulls if no Cloudflare token configured |
 | `/api/system-info` | GET | JSON: host (Pi) vitals — temperature, CPU, memory, disk, uptime |
 | `/api/system-info/history` | GET | JSON: windowed host vitals time series for the dashboard chart (`window`, `rollup` params) |
+| `/api/services/current` | GET | JSON: one service's most recent CPU/memory reading, for the live tiles on its detail view (`service` param) |
 | `/api/services/history` | GET | JSON: one service's RAM/CPU time series for the detail-view chart (`service`, `window`, `rollup` params) |
 | `/api/alert` | POST | Send a custom Telegram alert (Markdown `message`; no auth/rate limit) |
 | `/api/alert-settings` | GET | Per-service alert frequencies (`hourly` / `daily` / `muted`) |
@@ -218,6 +222,35 @@ source as `/api/services/history`), fetched for all services in one batched quer
 (`latest_service_samples_payload`); `null` when a service has no recorded samples yet. Rendered in the
 sidebar row as two plain percentages, next to the alert bell, hidden along with the rest of the row's
 detail columns when the sidebar is collapsed.
+
+### GET `/api/services/backup-status`
+
+Returns:
+```json
+{
+  "services": [
+    {"name": "projects_foo.service", "backup_status": "green", "backup_stale_seconds": 1200}
+  ]
+}
+```
+One entry per project (not per service — same suffix-less rule as `ci_status`), read via `backup_status.py`
+from the manifest/R2 state written by `~/backup-db-cloudflare-r2/backup.sh`. `backup_status` is
+`green`/`yellow`/`red`; a project is omitted if it owns no tracked databases.
+
+### GET `/api/r2-usage`
+
+Returns this month's Cloudflare R2 usage against the free tier (storage, Class A/B requests):
+```json
+{
+  "storage_bytes": 1073741824,
+  "storage_pct": 10.0,
+  "class_a_requests": 50000,
+  "class_a_pct": 5.0,
+  "class_b_requests": 200000,
+  "class_b_pct": 2.0
+}
+```
+All fields are `null` when `CLOUDFLARE_ACCOUNT_ID`/`CLOUDFLARE_API_TOKEN` are unset or the API call fails.
 
 ### GET `/api/system-info`
 
@@ -347,6 +380,7 @@ starting at `ALERT_RESET_HOUR`, default 6 AM).
 | Telegram alerts | One transport (`send_telegram_message`); service failures use `send_service_failure_alert`; custom messages use `POST /api/alert` |
 | Alert frequency | Per-service `muted` / `hourly` / `daily`; persisted in `alert_settings.json`; last-sent times kept in memory |
 | Metrics sampler | One background thread (`system_metrics.py`): host vitals at 1Hz, flushed as a 30s avg+max row; per-service RAM/CPU sampled on the same 30s flush. Linux-only (no-op off-Pi). Started by `start_scheduler` |
+
 ## Data Models
 
 ```
@@ -399,27 +433,6 @@ service_samples  (per-service vitals, one row per service per 30s window)
 | `ALERT_RESET_HOUR` | `src/scheduler.py` | `6` | Hour (local time) at which the daily alert window resets |
 | Health-check interval | `src/scheduler.py` | 5 minutes | How often failed services are scanned for Telegram alerts |
 
-## Deployment
-
-**systemd unit file:** `install/projects_service-monitor.service`
-
-```ini
-[Unit]
-Description=Service Monitor
-After=multi-user.target
-
-[Service]
-WorkingDirectory=/home/mnalavadi/service-monitor
-Type=idle
-ExecStart=/home/mnalavadi/.local/bin/uv run src/app.py
-User=mnalavadi
-
-[Install]
-WantedBy=multi-user.target
-```
-
-**Cloudflared:** Configured via `add_cloudflared_service.sh` to expose on `service-monitor.mnalavadi.org`.
-
 ## External Dependencies
 
 | Service | Purpose | Auth |
@@ -428,12 +441,4 @@ WantedBy=multi-user.target
 | Cloudflared | HTTPS tunnel | Cloudflare account |
 | Telegram Bot API | Failure + custom alerts | Bot token in `.env` |
 | GitHub Actions API | CI status badges | PAT in `.env` (optional) |
-
-## Known Limitations
-
-- Inspector Detector check endpoint is hardcoded to a specific service name and configured via `INSPECTOR_DETECTOR_*` env vars
-- No authentication on web interface or `POST /api/alert`
-- Requires sudo for restart functionality (must configure sudoers)
-- Only monitors services matching `projects_*` pattern
-- Log streaming only works on Linux (journalctl); dev mode shows placeholder
-- Last-alert dedupe state is in-memory; process restart can re-send a failure alert sooner than the configured window
+| Cloudflare R2 API | Backup status + usage reporting | Account ID + API token in `.env` (optional) |
