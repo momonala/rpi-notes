@@ -1149,6 +1149,12 @@ textarea:focus-visible {
         color var(--transition-fast);
 }
 
+/* Anchor the avatar-hover scale at the left edge so it grows rightward
+   only — the colored border-left indicator never gets scaled/clipped. */
+.website-pill.t-avatar {
+    transform-origin: left center;
+}
+
 .website-pill:hover {
     background: rgba(255, 255, 255, 0.05);
     color: var(--color-text-primary);
