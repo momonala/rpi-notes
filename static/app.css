@@ -546,6 +546,28 @@ textarea:focus-visible {
     .mobile-hamburger {
         flex-shrink: 0;
     }
+
+    /* Smaller icons/columns free up width for the service name, which is the
+       thing users actually need to read in the full-width mobile sidebar. */
+    .service-item-grid {
+        --status-icon-size: 12px;
+        --service-metric-col: 4rem;
+        --service-uptime-col: 3.25ch;
+        column-gap: var(--spacing-xs);
+    }
+
+    .service-name {
+        font-size: var(--font-size-xs);
+    }
+
+    .service-mem,
+    .service-uptime {
+        font-size: 0.625rem;
+    }
+
+    .service-details__item--backup {
+        margin-right: calc(var(--spacing-xs) + 0.15em);
+    }
 }
 
 .icon-button {
@@ -763,8 +785,16 @@ textarea:focus-visible {
     }
 
     .metric-grid .metric {
-        padding: var(--spacing-sm) var(--spacing-xs);
+        padding: var(--spacing-xs);
         min-width: 0;
+    }
+
+    .metric-grid .metric__head {
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .metric-grid .metric__bar {
+        margin-top: var(--spacing-xs);
     }
 
     .metric-grid .metric__label,
@@ -1147,6 +1177,12 @@ textarea:focus-visible {
     transition:
         background-color var(--transition-fast),
         color var(--transition-fast);
+}
+
+/* Anchor the avatar-hover scale at the left edge so it grows rightward
+   only — the colored border-left indicator never gets scaled/clipped. */
+.website-pill.t-avatar {
+    transform-origin: left center;
 }
 
 .website-pill:hover {

@@ -37,10 +37,9 @@
 
         setTile(container, 'cpu', {
             value: formatValue(info.cpu_percent, '%'),
-            sub: [
-                info.load_avg != null ? `load ${info.load_avg}` : null,
-                info.cpu_count ? `${info.cpu_count} cores` : null,
-            ].filter(Boolean).join(' · '),
+            sub: info.load_avg != null
+                ? `load ${info.load_avg}${info.cpu_count ? `/${info.cpu_count}` : ''}`
+                : '',
             level: levelFor(info.cpu_percent, WARN_PCT, CRIT_PCT),
             fill: info.cpu_percent,
         });
