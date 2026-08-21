@@ -1,0 +1,882 @@
+/* ============================================================
+   transitions.dev — motion layer for Service Monitor
+   ------------------------------------------------------------
+   Structure:
+     1. :root  — the shared motion-token scale + per-transition
+                 semantic variables (the skill's universal block,
+                 installed once).
+     2. Snippets — each transition's CSS, pasted verbatim.
+     3. Project hooks — the only place where Service Monitor's
+                 own sizing / dark palette is bound onto the
+                 t-* classes. Snippets above stay untouched.
+   Loaded after app.css so the hooks win over base component CSS.
+   ============================================================ */
+
+/* ── 1. Universal install (transitions-dev _root.css) ─────── */
+:root {
+  /* Durations */
+  --duration-stagger: 40ms;  /* per-item stagger offset */
+  --duration-micro: 80ms;  /* tooltip/path delay, shake segment, large stagger */
+  --duration-quick: 150ms;  /* modal/dropdown close, text swap, tooltip appear */
+  --duration-fast: 250ms;  /* icon swap, dropdown/modal open, tabs sliding, page slide */
+  --duration-medium: 350ms;  /* panel close, toast close */
+  --duration-slow: 400ms;  /* panel open, skeleton content reveal, input clear */
+  --duration-very-slow: 500ms;  /* emphasis moments, badge appear, text reveal, success check */
+  /* Easings */
+  --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: ease-in-out;
+  --ease-out: ease-out;
+  --ease-linear: linear;
+  --ease-bounce: cubic-bezier(0.34, 1.36, 0.64, 1);
+  --ease-bounce-strong: cubic-bezier(0.34, 3.85, 0.64, 1);
+  /* Distances */
+  --distance-micro: 4px;
+  --distance-small: 6px;
+  --distance-base: 8px;
+  --distance-medium: 12px;
+  --distance-large: 30px;
+  /* Scales */
+  --scale-large: 0.96;
+  --scale-medium: 0.97;
+  --scale-small: 0.98;
+  --scale-tiny: 0.99;
+  /* Blur */
+  --blur-small: 2px;
+  --blur-medium: 3px;
+  --blur-large: 8px;
+
+  /* Number pop-in */
+  --digit-dur: 500ms;
+  --digit-distance: 8px;
+  --digit-stagger: 70ms;
+  --digit-blur: 2px;
+  --digit-ease: cubic-bezier(0.34, 1.45, 0.64, 1);
+  --digit-dir-x: 0;
+  --digit-dir-y: 1;
+  /* Success check */
+  --check-opacity-dur: 500ms;
+  --check-rotate-dur: 500ms;
+  --check-rotate-from: 80deg;
+  --check-bob-dur: 500ms;
+  --check-y-amount: 40px;
+  --check-blur-dur: 500ms;
+  --check-blur-from: 10px;
+  --check-path-dur: 500ms;
+  --check-path-delay: 80ms;
+  --check-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --check-ease-opacity: cubic-bezier(0.22, 1, 0.36, 1);
+  --check-ease-rotate: cubic-bezier(0.22, 1, 0.36, 1);
+  --check-ease-bob: cubic-bezier(0.34, 1.35, 0.64, 1);
+  --check-ease-path: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Avatar group hover */
+  --avatar-lift: -4px;
+  --avatar-dur: 320ms;
+  --avatar-scale: 1.05;
+  --avatar-falloff: 0.45;
+  --avatar-ease-in: cubic-bezier(0.22, 1, 0.36, 1);
+  --avatar-ease-out: cubic-bezier(0.34, 3.85, 0.64, 1);
+  /* Error state shake */
+  --shake-distance: 6px;
+  --shake-overshoot: 4px;
+  --shake-dur-a: 80ms;
+  --shake-dur-b: 60ms;
+  --shake-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --revert-hold: 3000ms;
+  --revert-dur: 280ms;
+  /* Input clear with dissolve */
+  --clear-dur: 1000ms;
+  --clear-out-dur: 400ms;
+  --clear-in-dur: 400ms;
+  --clear-out-fly: 12px;
+  --clear-in-fly: 12px;
+  --clear-out-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --clear-in-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --clear-blur: 2px;
+  --glow-delay: 50ms;
+  --glow-peak-at: 0.15;
+  /* Dark surface: the glow blends with `screen`, so it needs a higher
+     alpha than the light-mode default (0.42) to read at all. */
+  --glow-opacity: 0.85;
+  --glow-spread: 1.5;
+  /* Skeleton loader and reveal */
+  --pulse-dur: 1000ms;
+  --pulse-count: infinite;
+  --pulse-min: 0.5;
+  --reveal-dur: 400ms;
+  --reveal-blur: 2px;
+  --reveal-ease: ease-in-out;
+  /* Tabs sliding */
+  --tabs-dur: 250ms;
+  --tabs-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --tabs-text-muted: var(--color-text-muted);
+  --tabs-text-active: var(--color-text-primary);
+  --tabs-bar-bg: transparent;
+  --tabs-pill-bg: var(--color-bg-secondary);
+  /* Tooltip open/close */
+  --tt-in-dur: 150ms;
+  --tt-out-dur: 50ms;
+  --tt-scale: 0.98;
+  --tt-delay: 80ms;
+  --tt-in-ease: ease-out;
+  --tt-out-ease: ease-out;
+  --tt-bg: var(--color-bg-primary);
+  --tt-fg: var(--color-text-primary);
+  /* Accordion expand */
+  --acc-expand: 250ms;
+  --acc-collapse: 250ms;
+  --acc-chevron: 250ms;
+  --acc-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Toast open / close */
+  --toast-open: 350ms;
+  --toast-close: 250ms;
+  --toast-distance: 16px;
+  --toast-blur: 2px;
+  --toast-scale: 0.97;
+  --toast-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Checkbox check */
+  --check-box: 150ms;
+  --check-draw: 350ms;
+  --check-delay: 0ms;
+  --check-uncheck: 150ms;
+  --check-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+
+/* ── 2. Snippets ─────────────────────────────────────────── */
+
+/* --- Toast open / close (22) ----------------------------- */
+.t-toast {
+  opacity: 0;
+  transform: translateY(var(--toast-distance)) scale(var(--toast-scale));
+  filter: blur(var(--toast-blur));
+  will-change: transform, opacity, filter;
+  transition:
+    opacity var(--toast-close) var(--toast-ease),
+    transform var(--toast-close) var(--toast-ease),
+    filter var(--toast-close) var(--toast-ease);
+}
+.t-toast.is-open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+  transition:
+    opacity var(--toast-open) var(--toast-ease),
+    transform var(--toast-open) var(--toast-ease),
+    filter var(--toast-open) var(--toast-ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-toast { transition: none !important; }
+}
+
+/* --- Success check (10) ---------------------------------- */
+/* Wrapper drives the appear animation; it doesn't own any
+   sizing or color so you can drop in any icon. */
+.t-success-check {
+  display: inline-block;
+  transform-origin: center;
+  opacity: 0;
+  will-change: transform, opacity, filter;
+}
+/* overflow: visible keeps the stroke from clipping while it
+   draws; display: block kills the inline whitespace under SVGs. */
+.t-success-check svg { display: block; overflow: visible; }
+/* Stroke-draw setup. The exact length is written inline from
+   path.getTotalLength() on mount (see transitions.js). */
+.t-success-check svg path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+}
+
+.t-success-check[data-state="in"] {
+  animation:
+    t-check-fade   var(--check-opacity-dur) var(--check-ease-opacity) forwards,
+    t-check-rotate var(--check-rotate-dur)  var(--check-ease-rotate)  forwards,
+    t-check-blur   var(--check-blur-dur)    var(--check-ease-out)     forwards,
+    t-check-bob    var(--check-bob-dur)     var(--check-ease-bob)     forwards;
+}
+.t-success-check[data-state="in"] svg path {
+  animation: t-check-draw var(--check-path-dur) var(--check-ease-path) var(--check-path-delay, 0ms) forwards;
+}
+
+@keyframes t-check-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes t-check-rotate {
+  from { transform: rotate(var(--check-rotate-from)); }
+  to   { transform: rotate(0deg); }
+}
+@keyframes t-check-blur {
+  from { filter: blur(var(--check-blur-from)); }
+  to   { filter: blur(0); }
+}
+@keyframes t-check-bob {
+  from { translate: 0 var(--check-y-amount); }
+  to   { translate: 0 0; }
+}
+@keyframes t-check-draw { to { stroke-dashoffset: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .t-success-check { animation: none !important; opacity: 1; }
+  .t-success-check svg path { animation: none !important; stroke-dashoffset: 0 !important; }
+}
+
+/* --- Accordion expand (21) ------------------------------- */
+/* grid-template-rows 0fr → 1fr gives a clean height animation
+   with no JS measurement; the inner element clips overflow. */
+.t-acc-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--acc-collapse) var(--acc-ease);
+}
+.t-acc[data-open="true"] .t-acc-panel {
+  grid-template-rows: 1fr;
+  transition: grid-template-rows var(--acc-expand) var(--acc-ease);
+}
+.t-acc-panel-inner {
+  overflow: hidden;
+  opacity: 0;
+  filter: blur(2px);
+  transition:
+    opacity var(--acc-collapse) var(--acc-ease),
+    filter var(--acc-collapse) var(--acc-ease);
+}
+.t-acc[data-open="true"] .t-acc-panel-inner {
+  opacity: 1;
+  filter: blur(0);
+  transition:
+    opacity var(--acc-expand) var(--acc-ease),
+    filter var(--acc-expand) var(--acc-ease);
+}
+/* Flip the chevron vertically to turn the "v" into a "^". */
+.t-acc-chevron {
+  display: inline-flex;
+  transform: scaleY(1);
+  transform-origin: center;
+  transition: transform var(--acc-chevron) var(--acc-ease);
+}
+.t-acc-chevron path { vector-effect: non-scaling-stroke; }
+.t-acc[data-open="true"] .t-acc-chevron {
+  transform: scaleY(-1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-acc-panel, .t-acc-panel-inner, .t-acc-chevron {
+    transition: none !important;
+  }
+}
+
+/* --- Tabs sliding (16) ----------------------------------- */
+/* The bar is just a flex container with padding for the pill
+   to sit inside. Tabs sit on z-index: 1, the pill on z-index: 0,
+   so labels read above the pill background. */
+.t-tabs {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 48px;
+  background: var(--tabs-bar-bg);
+}
+.t-tab {
+  position: relative;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  height: 30px;
+  padding: 4px 12px;
+  color: var(--tabs-text-muted);
+  cursor: pointer;
+  border-radius: 48px;
+  z-index: 1;
+  transition: color var(--tabs-dur) var(--tabs-ease);
+}
+.t-tab:not([aria-selected="true"]):hover,
+.t-tab[aria-selected="true"] {
+  color: var(--tabs-text-active);
+}
+
+/* The pill: width + transform are written inline by JS so
+   the transition tweens between the previous and next
+   measured positions. */
+.t-tabs-pill {
+  position: absolute;
+  top: 3px;
+  left: 0;
+  height: 30px;
+  width: 0;
+  background: var(--tabs-pill-bg);
+  border-radius: 48px;
+  transform: translateX(0);
+  transition:
+    transform var(--tabs-dur) var(--tabs-ease),
+    width     var(--tabs-dur) var(--tabs-ease);
+  will-change: transform, width;
+  z-index: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-tabs-pill, .t-tab { transition: none !important; }
+}
+
+/* --- Skeleton loader and reveal (14) --------------------- */
+.t-skel { position: relative; }
+.t-skel-skeleton,
+.t-skel-content {
+  position: absolute;
+  inset: 0;
+}
+
+.t-skel-skeleton {
+  z-index: 1;
+  opacity: 1;
+  filter: blur(0);
+  transition:
+    opacity var(--reveal-dur) var(--reveal-ease),
+    filter  var(--reveal-dur) var(--reveal-ease);
+}
+.t-skel-content {
+  z-index: 2;
+  opacity: 0;
+  filter: blur(var(--reveal-blur));
+  transition:
+    opacity var(--reveal-dur) var(--reveal-ease),
+    filter  var(--reveal-dur) var(--reveal-ease);
+}
+.t-skel.is-revealed .t-skel-skeleton {
+  opacity: 0;
+  filter: blur(var(--reveal-blur));
+}
+.t-skel.is-revealed .t-skel-content {
+  opacity: 1;
+  filter: blur(0);
+}
+.t-skel.is-resetting .t-skel-skeleton,
+.t-skel.is-resetting .t-skel-content {
+  transition: none !important;
+}
+
+/* Pulse: place the animation on the bar/avatar children, not
+   on the skeleton itself, so the skeleton's opacity / filter
+   stay free for the cross-fade transition above. */
+.t-skel-skeleton.is-pulsing > * {
+  animation: t-skel-pulse var(--pulse-dur) ease-in-out var(--pulse-count);
+}
+@keyframes t-skel-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: var(--pulse-min); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-skel-skeleton, .t-skel-content {
+    transition: none !important;
+  }
+  .t-skel-skeleton.is-pulsing > * { animation: none !important; }
+}
+
+/* --- Number pop-in (02) ---------------------------------- */
+@keyframes t-digit-pop-in {
+  0%   {
+    transform: translate(
+      calc(var(--digit-distance) * var(--digit-dir-x)),
+      calc(var(--digit-distance) * var(--digit-dir-y))
+    );
+    opacity: 0;
+    filter: blur(var(--digit-blur));
+  }
+  100% { transform: translate(0, 0); opacity: 1; filter: blur(0); }
+}
+
+.t-digit-group {
+  display: inline-flex;
+  align-items: baseline;
+}
+.t-digit {
+  display: inline-block;
+  will-change: transform, opacity, filter;
+}
+.t-digit-group.is-animating .t-digit {
+  animation: t-digit-pop-in var(--digit-dur) var(--digit-ease) both;
+}
+.t-digit-group.is-animating .t-digit[data-stagger="1"] {
+  animation-delay: var(--digit-stagger);
+}
+.t-digit-group.is-animating .t-digit[data-stagger="2"] {
+  animation-delay: calc(var(--digit-stagger) * 2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-digit-group .t-digit { animation: none !important; }
+}
+
+/* --- Error state shake (12) ------------------------------ */
+/* Border-color tween. The control's default / error border-color
+   lives in the project hooks below — this rule only owns the
+   interpolation. */
+.t-input {
+  transition: border-color 150ms ease-out;
+  will-change: transform;
+}
+.t-input.is-error {
+  transition: border-color var(--revert-dur, 280ms) ease-out;
+}
+
+.t-error-msg {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity    var(--revert-dur, 280ms) ease-out,
+    visibility 0s linear var(--revert-dur, 280ms);
+}
+.t-input-wrap.is-error .t-error-msg {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity    var(--revert-dur, 280ms) ease-out,
+    visibility 0s linear 0s;
+}
+
+/* %-stops are cumulative durations as a fraction of the total
+   (80, 60, 80, 60 = 280ms): 28.57%, 57.14%, 78.57%, 100%.
+   Recompute if any segment duration changes. */
+.t-input.is-shaking {
+  animation: t-input-shake calc(
+      var(--shake-dur-a) * 2 + var(--shake-dur-b) * 2
+    ) linear;
+}
+@keyframes t-input-shake {
+  0%      { transform: translateX(0);                                animation-timing-function: var(--shake-ease); }
+  28.57%  { transform: translateX(var(--shake-distance));            animation-timing-function: var(--shake-ease); }
+  57.14%  { transform: translateX(calc(var(--shake-distance) * -1)); animation-timing-function: var(--shake-ease); }
+  78.57%  { transform: translateX(var(--shake-overshoot));           animation-timing-function: var(--shake-ease); }
+  100%    { transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-input { animation: none !important; transform: none !important; }
+}
+
+/* --- Input clear with dissolve (13) ---------------------- */
+.t-clear {
+  position: relative;
+  overflow: hidden;
+}
+.t-clear-mirror,
+.t-clear-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  z-index: 2;
+}
+.t-clear-mirror { opacity: 0; }
+.t-clear.has-value .t-clear-mirror,
+.t-clear.is-clearing .t-clear-mirror { opacity: 1; }
+/* Hide the input's own glyphs while the mirror owns them so
+   the cleared text doesn't double-render with the fly-up. */
+.t-clear.has-value > input,
+.t-clear.is-clearing > input {
+  -webkit-text-fill-color: transparent;
+}
+.t-clear.has-value .t-clear-placeholder { opacity: 0; }
+/* The streak overlay: empty by default; JS writes a stack of
+   `radial-gradient(...)` layers into background during a clear.
+   Dark surface → `screen` (multiply over black vanishes). */
+.t-clear-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 3;
+  mix-blend-mode: screen;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-clear-glow { opacity: 0 !important; }
+}
+
+/* --- Avatar group hover (11) ----------------------------- */
+/* Hover-spring transition only — item styling lives in app.css. */
+.t-avatar {
+  transform-origin: center;
+  /* translateY before scale so scale doesn't amplify the lift offset. */
+  transform:
+    translateY(var(--shift, 0px))
+    scale(var(--scale-active, 1));
+  transition: transform var(--avatar-dur) var(--avatar-ease-in);
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-avatar { transition: none !important; transform: none !important; }
+}
+
+/* --- Tooltip open/close (17) ----------------------------- */
+.t-tt-wrap {
+  position: relative;
+  display: inline-block;
+}
+.t-tt {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translate(-50%, 0) scale(var(--tt-scale));
+  transform-origin: 50% 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--tt-bg);
+  color: var(--tt-fg);
+  white-space: nowrap;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.06),
+    0 2px 6px 0 rgba(0, 0, 0, 0.05),
+    0 4px 42px 0 rgba(0, 0, 0, 0.06);
+  opacity: 0;
+  pointer-events: none;
+  /* Default rule controls the LEAVE state. transition-delay
+     stays unset so leaving plays without delay. */
+  transition:
+    opacity   var(--tt-out-dur) var(--tt-out-ease),
+    transform var(--tt-out-dur) var(--tt-out-ease);
+}
+/* The delay belongs ONLY to the hover rule so leaving the
+   trigger snaps the delay back to 0. */
+.t-tt-wrap:hover .t-tt,
+.t-tt-trigger:focus-visible + .t-tt {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+  transition-duration: var(--tt-in-dur);
+  transition-timing-function: var(--tt-in-ease);
+  transition-delay: var(--tt-delay);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-tt { transition: none !important; }
+}
+
+/* --- Checkbox check (25) --------------------------------- */
+.t-check {
+  transition:
+    background var(--check-box) var(--check-ease),
+    box-shadow var(--check-box) var(--check-ease);
+}
+.t-check svg path {
+  stroke-dasharray: var(--check-len, 15);
+  stroke-dashoffset: var(--check-len, 15);
+  transition: stroke-dashoffset var(--check-uncheck) var(--check-ease);
+}
+.t-check[aria-checked="true"] svg path {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset var(--check-draw) var(--check-ease) var(--check-delay);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-check, .t-check svg path { transition: none !important; }
+}
+
+
+/* ── 3. Project hooks ─────────────────────────────────────
+   Service Monitor's own sizing / palette bound onto the
+   snippet classes. Nothing above this line is project-specific.
+   ───────────────────────────────────────────────────────── */
+
+/* Toast host — bottom-right stack over the app. */
+.toast-host {
+    position: fixed;
+    right: var(--spacing-md);
+    bottom: var(--spacing-md);
+    z-index: 200;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: var(--spacing-sm);
+    pointer-events: none;
+}
+
+.toast {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    max-width: min(24rem, calc(100vw - 2 * var(--spacing-md)));
+    padding: 0.6rem 0.85rem;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--color-accent);
+    border-radius: var(--radius);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-sm);
+    box-shadow: var(--shadow-lg);
+    pointer-events: auto;
+}
+
+.toast--success { border-left-color: var(--color-status-active); }
+.toast--error   { border-left-color: var(--color-danger); }
+
+.toast__icon {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+}
+
+.toast--success .toast__icon { color: var(--color-status-active); }
+.toast--error .toast__icon   { color: var(--color-danger); }
+
+/* The success check bobs 40px by default — far too much for a
+   1rem icon in a toast line. Scale the appear motion down to the
+   icon. */
+.toast .t-success-check {
+    --check-y-amount: 10px;
+    --check-blur-from: 4px;
+    --check-rotate-from: 45deg;
+}
+
+/* Accordion — the collapsible "Resource history" chart. The
+   chevron and label styling stay in app.css; only the flip and
+   the grid-track live here. */
+.system-chart.t-acc .t-acc-panel-inner {
+    /* Padding must sit on the inner element, never on the 0fr
+       track, or the panel keeps a residual height strip. */
+    padding-top: var(--spacing-md);
+}
+
+.system-chart__collapse-icon.t-acc-chevron svg {
+    width: var(--status-icon-size);
+    height: var(--status-icon-size);
+}
+
+/* Tabs — the rollup + lookback segmented controls. The snippet's
+   own pill geometry (30px / 48px radius / light palette) is
+   replaced by the app's compact dark chrome. */
+.system-chart__ranges.t-tabs,
+.system-chart__rollups.t-tabs {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    gap: 0.25rem;
+    padding: 0;
+    border-radius: var(--radius);
+}
+
+.system-chart__ranges .t-tabs-pill,
+.system-chart__rollups .t-tabs-pill {
+    top: 0;
+    height: 100%;
+    border-radius: var(--radius);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-sizing: border-box;
+}
+
+/* The pill now paints the active background, so the button's own
+   .is-active fill would double up. Keep only the text color. */
+.system-chart__ranges .t-tab.is-active,
+.system-chart__rollups .t-tab.is-active {
+    background: transparent;
+    border-color: transparent;
+}
+
+/* Restore the app's compact button box over the snippet's
+   30px / 12px pill sizing. */
+.system-chart__ranges .t-tab,
+.system-chart__rollups .t-tab {
+    box-sizing: border-box;
+    width: 3.25rem;
+    height: auto;
+    padding: 0.4rem 0;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-align: center;
+}
+
+.system-chart__ranges .t-tab:hover,
+.system-chart__rollups .t-tab:hover {
+    background: transparent;
+}
+
+/* Skeleton reveal — metric grids. The snippet stacks its two
+   layers with position:absolute, which needs a sized wrap; here
+   both layers share one grid cell instead, so whichever layer is
+   taller defines the wrap's height (skeleton before load,
+   content after). */
+.metric-skel {
+    display: grid;
+}
+
+.metric-skel > .t-skel-skeleton,
+.metric-skel > .t-skel-content {
+    position: relative;
+    inset: auto;
+    grid-area: 1 / 1;
+}
+
+.metric-skel__tile {
+    padding: var(--spacing-md);
+    background: var(--color-bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+}
+
+.metric-skel__bar {
+    height: 0.6rem;
+    border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.metric-skel__bar + .metric-skel__bar {
+    margin-top: var(--spacing-sm);
+}
+
+.metric-skel__bar--wide  { width: 70%; }
+.metric-skel__bar--value { width: 45%; height: 1.1rem; }
+
+/* Number pop-in — the metric tile value. inline-flex would break
+   the tile's block layout, so keep the group a block-level line
+   box and let the digits ride inside it. */
+.metric__value.t-digit-group {
+    display: flex;
+    align-items: baseline;
+    min-height: 1.2em;
+}
+
+/* Error shake — the alert-frequency select reverting a failed save. */
+.alert-frequency-select.t-input {
+    border: 1px solid var(--border-color);
+}
+
+.alert-frequency-select.t-input.is-error {
+    border-color: var(--color-danger);
+}
+
+/* Input clear — the sidebar service search. The wrap takes over
+   the field's box so the mirror, placeholder and glow can stack
+   inside it. */
+.sidebar__search .t-clear {
+    display: block;
+    border-radius: var(--radius);
+}
+
+.sidebar__search .t-clear > input {
+    /* Room for the clear button on the right. */
+    padding-right: 1.6rem;
+}
+
+.sidebar__search .t-clear-mirror,
+.sidebar__search .t-clear-placeholder {
+    padding-left: 0.6125rem;
+    padding-right: 1.6rem;
+    font-size: var(--font-size-xs);
+    font-family: inherit;
+}
+
+.sidebar__search .t-clear-mirror { color: var(--color-text-primary); }
+.sidebar__search .t-clear-placeholder { color: var(--color-text-muted); }
+
+.t-clear-btn {
+    position: absolute;
+    top: 50%;
+    right: 0.3rem;
+    transform: translateY(-50%);
+    z-index: 4;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 1.1rem;
+    height: 1.1rem;
+    padding: 0;
+    appearance: none;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.t-clear.has-value .t-clear-btn { display: inline-flex; }
+
+.t-clear-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: var(--color-text-primary);
+}
+
+.t-clear-btn svg {
+    width: 0.6rem;
+    height: 0.6rem;
+}
+
+/* Tooltip — the collapsed-sidebar service name bubble. It sits to
+   the right of the rail rather than above the trigger, so the
+   snippet's positioning is re-anchored here. */
+.service-tooltip.t-tt {
+    left: calc(var(--sidebar-collapsed-width) + var(--spacing-xs));
+    bottom: auto;
+    top: 50%;
+    transform: translateY(-50%) scale(var(--tt-scale));
+    transform-origin: 0 50%;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius);
+    font-size: var(--font-size-sm);
+    box-shadow: var(--shadow-md);
+    z-index: 50;
+}
+
+.sidebar--collapsed .service-item:hover .service-tooltip.t-tt,
+.sidebar--collapsed .service-link:focus-visible + .service-tooltip.t-tt {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+    transition-duration: var(--tt-in-dur);
+    transition-timing-function: var(--tt-in-ease);
+    transition-delay: var(--tt-delay);
+}
+
+/* Checkbox check — the log filter toggles ("Aa", "Newest first").
+   The native input stays the source of truth and is visually
+   hidden; this box is the visual, mirrored from its change event. */
+.log-filter-checkbox input.t-check-native {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.t-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 0.85rem;
+    height: 0.85rem;
+    flex-shrink: 0;
+    border-radius: 2px;
+    background: transparent;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+
+.t-check[aria-checked="true"] {
+    background: var(--color-accent);
+    box-shadow: inset 0 0 0 1px var(--color-accent);
+}
+
+.t-check svg {
+    width: 0.6rem;
+    height: 0.6rem;
+    display: block;
+    overflow: visible;
+}
+
+.t-check svg path {
+    fill: none;
+    stroke: #fff;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.log-filter-checkbox input.t-check-native:focus-visible + .t-check {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+}

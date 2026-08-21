@@ -202,9 +202,6 @@ textarea:focus-visible {
         display: none !important;
     }
     
-    .sidebar--collapsed .service-tooltip {
-        display: block !important;
-    }
 }
 
 .sidebar__header {
@@ -253,6 +250,9 @@ textarea:focus-visible {
 
 .service-item {
     display: block;
+    /* Containing block for .service-tooltip so the bubble anchors to its own
+       row rather than a distant positioned ancestor. */
+    position: relative;
     padding: 0.625rem var(--spacing-md);
     margin-bottom: 0;
     border-radius: var(--radius);
@@ -494,7 +494,6 @@ textarea:focus-visible {
 
 /* Service Tooltip (shown when sidebar collapsed on desktop) */
 .service-tooltip {
-    display: none;
     position: absolute;
     left: calc(var(--sidebar-collapsed-width) + var(--spacing-xs));
     top: 50%;
@@ -508,10 +507,6 @@ textarea:focus-visible {
     z-index: 50;
     pointer-events: none;
     box-shadow: var(--shadow-md);
-}
-
-.sidebar--collapsed .service-item:hover .service-tooltip {
-    display: block !important;
 }
 
 .mobile-nav-bar {
@@ -986,22 +981,15 @@ textarea:focus-visible {
     width: var(--status-icon-size);
     height: var(--status-icon-size);
     flex-shrink: 0;
-    transition: transform var(--transition-fast);
-}
-
-.system-chart--collapsed .system-chart__collapse-icon {
-    transform: rotate(-90deg);
 }
 
 .system-chart--collapsed {
     padding-bottom: var(--spacing-md);
 }
 
-.system-chart--collapsed .system-chart__body {
-    display: none;
-}
-
-.system-chart__body {
+/* Charts without a collapse header (the dashboard's system chart) keep the
+   header gap they used to get from the body's margin. */
+.system-chart__body:not(.t-acc-panel) {
     margin-top: var(--spacing-md);
 }
 

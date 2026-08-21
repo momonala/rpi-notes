@@ -122,6 +122,9 @@
         serviceSearch.addEventListener('input', (event) => {
             filterServices(event.target.value);
         });
+        // Clearing the field dissolves the typed text away; re-filter on the
+        // spot rather than waiting for the tween to finish.
+        window.SMTransitions?.setupInputClear(serviceSearch, (value) => filterServices(value));
     }
 
     function showWelcomeMessage() {

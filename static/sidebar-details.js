@@ -255,7 +255,7 @@
         }
 
         const select = document.createElement('select');
-        select.className = 'alert-frequency-select';
+        select.className = 'alert-frequency-select t-input';
         select.setAttribute('aria-label', 'Alert frequency');
 
         for (const { value, label } of [
@@ -278,9 +278,12 @@
             if (!ok) {
                 console.error('Failed to save alert setting, reverting');
                 select.value = prevFrequency;
+                window.SMTransitions?.shakeError(select);
+                window.SMTransitions?.showToast('Could not save alert setting', 'error');
                 return;
             }
             select.dataset.committed = newFrequency;
+            window.SMTransitions?.showToast(`Alerts set to ${newFrequency}`, 'success');
             const sidebarItem = document.querySelector(`.service-item[data-service-name="${CSS.escape(serviceName)}"]`);
             if (sidebarItem) updateAlertBadge(sidebarItem, newFrequency);
         });
@@ -379,6 +382,10 @@
             const mode = cell.classList.contains('service-mem') ? 'mem' : 'uptime';
             sortMode = sortMode === mode ? null : mode;
             applySort(nav);
+            window.SMTransitions?.showToast(
+                sortMode ? `Sorted by ${sortMode}` : 'Sort cleared',
+                'info',
+            );
         });
     }
 

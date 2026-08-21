@@ -91,7 +91,8 @@ def restart_service():
         logger.error("Failed to trigger restart for %s: %s", service, exc)
         return f"Failed to trigger restart for {service}", 500
 
-    return redirect(url_for("index", service=service))
+    # `done` is consumed (and stripped from the URL) by the front-end toast.
+    return redirect(url_for("index", service=service, done="restart"))
 
 
 @app.route("/inspector-detector/check", methods=["POST"])
@@ -109,7 +110,7 @@ def inspector_detector_check():
         logger.error("inspector-detector check failed: %s", exc.stderr)
         return (exc.stderr or "inspector-detector check failed"), 500
 
-    return redirect(url_for("index", service=service))
+    return redirect(url_for("index", service=service, done="check"))
 
 
 @app.route("/logs/stream")

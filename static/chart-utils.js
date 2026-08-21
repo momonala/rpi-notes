@@ -41,6 +41,7 @@
         root.querySelectorAll(selector).forEach((btn) => {
             setPressed(btn, btn.dataset[dataKey] === activeValue);
         });
+        window.SMTransitions?.syncPills(root);
     }
 
     function padCell(value, width, align = 'left') {
@@ -121,7 +122,7 @@
                     <svg class="metric__icon" aria-hidden="true"><use href="#icon-${tile.icon}"></use></svg>
                     <span class="metric__label">${tile.label}</span>
                 </div>
-                <div class="metric__value" data-role="value">—</div>
+                <div class="metric__value t-digit-group" data-role="value">—</div>
                 ${tile.sub !== false ? '<div class="metric__sub" data-role="sub"></div>' : ''}
                 ${barHtmlFor(tile)}
             `;
@@ -144,17 +145,29 @@
         el.style.left = `${Math.min(100, fill)}%`;
     }
 
+    function revealGrid(container) {
+        window.SMTransitions?.revealSkeleton(container);
+    }
+
     function setTile(container, id, { value, sub, level, fill, avgFill, maxFill }) {
         const tile = container.querySelector(`.metric[data-metric="${id}"]`);
         if (!tile) return;
         tile.classList.remove('metric--warn', 'metric--crit');
         if (level) tile.classList.add(level);
-        tile.querySelector('[data-role="value"]').textContent = value;
+        const valueEl = tile.querySelector('[data-role="value"]');
+        if (window.SMTransitions) {
+            window.SMTransitions.setDigits(valueEl, value);
+        } else {
+            valueEl.textContent = value;
+        }
         const subEl = tile.querySelector('[data-role="sub"]');
         if (subEl) subEl.textContent = sub ?? '';
         setBarWidth(tile.querySelector('[data-role="bar"]'), fill);
         setBarMarker(tile.querySelector('[data-role="bar-avg"]'), avgFill);
         setBarMarker(tile.querySelector('[data-role="bar-max"]'), maxFill);
+        // Idempotent: the first tile written after a fetch lands is what
+        // cross-fades the pulsing skeleton out.
+        revealGrid(container);
     }
 
     // Only replace the placeholder while no tiles exist; once tiles are built we
@@ -166,6 +179,7 @@
         p.className = 'metric-grid__placeholder';
         p.textContent = message;
         if (!p.isConnected) container.appendChild(p);
+        revealGrid(container);
     }
 
     window.SMMetricGrid = {
@@ -174,5 +188,6 @@
         buildTiles,
         setTile,
         showGridError,
+        revealGrid,
     };
 })();

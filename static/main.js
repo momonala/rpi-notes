@@ -2,6 +2,9 @@
     'use strict';
 
     function initAll() {
+        // First: installs the t-* hooks (tab pills, skeletons, tooltips,
+        // checkboxes) that the feature modules below drive.
+        window.SMTransitions?.init();
         window.ServiceMonitorUiShell?.init();
         window.ServiceMonitorServicesList?.init();
         window.ServiceMonitorLogStream?.init();

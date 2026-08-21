@@ -86,6 +86,7 @@
     function setCollapsed(root, collapsed) {
         isCollapsed = collapsed;
         root.classList.toggle('system-chart--collapsed', collapsed);
+        window.SMTransitions?.setAccordionOpen(root, !collapsed);
         const btn = root.querySelector('#serviceChartCollapse');
         if (btn) {
             btn.setAttribute('aria-expanded', String(!collapsed));
@@ -97,6 +98,9 @@
             stopChartPolling();
             return;
         }
+        // The pill can't measure itself while the panel is collapsed
+        // (offsetWidth is 0), so re-land it once the panel is open again.
+        window.SMTransitions?.syncPills(root, false);
         if (!chart) return;
         chart.resize();
         refreshChartSafely();
