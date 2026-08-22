@@ -171,10 +171,10 @@ def test_ensure_schema_migrates_max_columns(metrics_db: Path):
 def test_sample_from_info():
     info = SystemInfo(
         hostname="pi",
+        local_ip="192.168.1.42",
         uptime="1d",
         temperature_c=55.5,
         cpu_percent=12.0,
-        load_avg=0.5,
         cpu_count=4,
         memory_used_pct=44.0,
         memory_used_mb=1000,
