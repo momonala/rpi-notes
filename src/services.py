@@ -3,6 +3,7 @@ import os
 import platform
 import re
 import shutil
+import socket
 import subprocess
 import time
 from dataclasses import dataclass
@@ -268,10 +269,10 @@ class SystemInfo:
     a field is None when the underlying source is unavailable (e.g. running off-Pi)."""
 
     hostname: str
+    local_ip: str | None
     uptime: str | None
     temperature_c: float | None
     cpu_percent: float | None
-    load_avg: float | None  # 1-minute load average
     cpu_count: int | None
     memory_used_pct: float | None
     memory_used_mb: int | None
@@ -279,6 +280,17 @@ class SystemInfo:
     disk_used_pct: float | None
     disk_used_gb: float | None
     disk_total_gb: float | None
+
+
+def _read_local_ip() -> str | None:
+    """LAN IP of the primary network interface. Opens no connection — UDP sockets pick
+    a route without sending packets, which is the standard way to ask the OS for this."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.connect(("8.8.8.8", 80))
+            return sock.getsockname()[0]
+    except OSError:
+        return None
 
 
 def _read_cpu_temperature() -> float | None:
@@ -420,10 +432,6 @@ def _read_memory() -> tuple[int, int, float] | None:
 def get_system_info() -> SystemInfo:
     """Collect host vitals. Cheap enough to call per dashboard poll (~100ms for the CPU sample)."""
     memory = _read_memory()
-    try:
-        load_avg: float | None = round(os.getloadavg()[0], 2)
-    except (OSError, AttributeError):
-        load_avg = None
 
     disk_used_pct = disk_used_gb = disk_total_gb = None
     try:
@@ -437,10 +445,10 @@ def get_system_info() -> SystemInfo:
 
     return SystemInfo(
         hostname=platform.node(),
+        local_ip=_read_local_ip(),
         uptime=_read_uptime(),
         temperature_c=_read_cpu_temperature(),
         cpu_percent=_read_cpu_percent(),
-        load_avg=load_avg,
         cpu_count=os.cpu_count(),
         memory_used_mb=memory[0] if memory else None,
         memory_total_mb=memory[1] if memory else None,

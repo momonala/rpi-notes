@@ -24,6 +24,31 @@
     ];
 
     let timer = null;
+    let ipCopyBound = false;
+
+    function renderIp(ip) {
+        const row = document.getElementById('sidebarIp');
+        const value = document.getElementById('sidebarIpValue');
+        const copyBtn = document.getElementById('sidebarIpCopy');
+        if (!row || !value || !copyBtn) return;
+
+        if (!ip) {
+            row.hidden = true;
+            return;
+        }
+        row.hidden = false;
+        value.textContent = ip;
+
+        if (!ipCopyBound) {
+            ipCopyBound = true;
+            copyBtn.addEventListener('click', () => {
+                navigator.clipboard?.writeText(value.textContent).then(() => {
+                    copyBtn.textContent = 'copied';
+                    setTimeout(() => { copyBtn.textContent = 'copy'; }, 1200);
+                });
+            });
+        }
+    }
 
     function tempFill(celsius) {
         if (celsius == null) return null;
@@ -35,12 +60,13 @@
         if (!container.querySelector('.metric')) buildTiles(container, TILES);
         container.removeAttribute('aria-busy');
 
+        renderIp(info.local_ip);
+
         setTile(container, 'cpu', {
             value: formatValue(info.cpu_percent, '%'),
-            sub: [
-                info.load_avg != null ? `load ${info.load_avg}` : null,
-                info.cpu_count ? `${info.cpu_count} cores` : null,
-            ].filter(Boolean).join(' · '),
+            sub: (info.cpu_percent != null && info.cpu_count)
+                ? `${(info.cpu_percent / 100 * info.cpu_count).toFixed(1)} / ${info.cpu_count} cores`
+                : '',
             level: levelFor(info.cpu_percent, WARN_PCT, CRIT_PCT),
             fill: info.cpu_percent,
         });

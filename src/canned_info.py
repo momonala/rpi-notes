@@ -3,10 +3,10 @@ from src.services import ServiceStatus, SystemInfo
 # Stand-in host vitals for dev mode (off-Pi, where /proc and /sys aren't the Pi's).
 canned_system_info = SystemInfo(
     hostname="raspberrypi",
+    local_ip="192.168.1.42",
     uptime="6d 14h",
     temperature_c=52.6,
     cpu_percent=12.4,
-    load_avg=0.42,
     cpu_count=4,
     memory_used_mb=1840,
     memory_total_mb=3886,
