@@ -347,7 +347,7 @@ def read_service_metrics(units: list[str]) -> dict[str, tuple[int | None, int | 
     if not units:
         return {}
     result = subprocess.run(
-        ["systemctl", "show", "--property=ControlGroup,CPUUsageNSec", *units],
+        ["systemctl", "show", "--property=Id,ControlGroup,CPUUsageNSec", *units],
         text=True,
         capture_output=True,
     )
@@ -355,17 +355,27 @@ def read_service_metrics(units: list[str]) -> dict[str, tuple[int | None, int | 
         logger.warning("systemctl show failed: %s", result.stderr.strip())
         return {}
 
-    # `systemctl show <a> <b>` emits one blank-line-separated block per unit, in argument order.
+    # `systemctl show <a> <b>` emits one blank-line-separated block per unit, but a unit type that
+    # doesn't support a requested property (e.g. .timer units have no ControlGroup/CPUUsageNSec on
+    # some systemd versions) can emit zero lines for that block, shifting every later block out of
+    # argument order. Key each block by its own Id= line instead of trusting position.
     metrics: dict[str, tuple[int | None, int | None]] = {}
-    for unit, block in zip(units, result.stdout.strip().split("\n\n")):
+    for block in result.stdout.strip().split("\n\n"):
+        if not block.strip():
+            continue
         raw_values: dict[str, str] = {}
         for line in block.splitlines():
             key, _, raw = line.partition("=")
             raw_values[key] = raw.strip()
+        unit = raw_values.get("Id", "")
+        if not unit:
+            continue
         cgroup = raw_values.get("ControlGroup", "")
         anon = _read_cgroup_anon(cgroup) if cgroup else None
         cpu_nsec = _parse_systemd_counter(raw_values.get("CPUUsageNSec", ""))
         metrics[unit] = (anon, cpu_nsec)
+    for unit in units:
+        metrics.setdefault(unit, (None, None))
     return metrics
 
 

@@ -351,9 +351,9 @@ def test_get_system_info_returns_dataclass():
 def test_read_service_metrics_parses_blocks(monkeypatch):
     """Each unit's block is parsed into (memory_bytes, cpu_nsec); missing cgroup returns None."""
     stdout = (
-        "ControlGroup=/system.slice/projects_foo.service\nCPUUsageNSec=1500000000\n"
+        "Id=projects_foo.service\nControlGroup=/system.slice/projects_foo.service\nCPUUsageNSec=1500000000\n"
         "\n"
-        "ControlGroup=\nCPUUsageNSec=42\n"
+        "Id=projects_bar.service\nControlGroup=\nCPUUsageNSec=42\n"
     )
     completed = subprocess.CompletedProcess(args=[], returncode=0, stdout=stdout, stderr="")
     monkeypatch.setattr(services_module.subprocess, "run", lambda *a, **k: completed)
@@ -361,6 +361,18 @@ def test_read_service_metrics_parses_blocks(monkeypatch):
     metrics = read_service_metrics(["projects_foo.service", "projects_bar.service"])
     assert metrics["projects_foo.service"] == (209715200, 1500000000)
     assert metrics["projects_bar.service"] == (None, 42)  # empty ControlGroup -> None
+
+
+def test_read_service_metrics_unit_with_no_block_gets_none(monkeypatch):
+    """A unit whose type emits no properties (e.g. some .timer units) reports (None, None), not
+    another unit's data — this is the misattribution regression test."""
+    stdout = "Id=projects_bar.service\nControlGroup=/system.slice/projects_bar.service\nCPUUsageNSec=99\n"
+    completed = subprocess.CompletedProcess(args=[], returncode=0, stdout=stdout, stderr="")
+    monkeypatch.setattr(services_module.subprocess, "run", lambda *a, **k: completed)
+    monkeypatch.setattr(services_module, "_read_cgroup_anon", lambda path: 1024)
+    metrics = read_service_metrics(["projects_foo.timer", "projects_bar.service"])
+    assert metrics["projects_foo.timer"] == (None, None)
+    assert metrics["projects_bar.service"] == (1024, 99)
 
 
 def test_read_service_metrics_empty_units_skips_subprocess(monkeypatch):
