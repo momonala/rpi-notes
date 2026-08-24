@@ -54,7 +54,35 @@
     let chart = null;
     let activeWindow = DEFAULT_WINDOW;
     let activeRollup = DEFAULT_ROLLUP;
+    let bootTimeMs = null;
     const visibleSeries = Object.fromEntries(SERIES_ORDER.map((id) => [id, true]));
+
+    const rebootLinePlugin = {
+        id: 'rebootLine',
+        afterDraw(chartInstance) {
+            if (bootTimeMs == null) return;
+            const { x } = chartInstance.scales;
+            if (bootTimeMs < x.min || bootTimeMs > x.max) return;
+
+            const xPixel = x.getPixelForValue(bootTimeMs);
+            const { top, bottom } = chartInstance.chartArea;
+            const ctx = chartInstance.ctx;
+            ctx.save();
+            ctx.strokeStyle = cssToken('--color-danger') || 'red';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(xPixel, top);
+            ctx.lineTo(xPixel, bottom);
+            ctx.stroke();
+            ctx.restore();
+        },
+    };
+
+    function setBootTime(bootTimeIso) {
+        const parsed = bootTimeIso ? Date.parse(bootTimeIso) : NaN;
+        bootTimeMs = Number.isNaN(parsed) ? null : parsed;
+        chart?.update('none');
+    }
 
     function loadRollupState() {
         const saved = readLocal(STORAGE_ROLLUP);
@@ -237,6 +265,7 @@
         return new Chart(canvas.getContext('2d'), {
             type: 'line',
             data: { datasets: buildDatasets() },
+            plugins: [rebootLinePlugin],
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
@@ -371,5 +400,5 @@
         startChartPolling();
     }
 
-    window.ServiceMonitorSystemMetricsChart = { init };
+    window.ServiceMonitorSystemMetricsChart = { init, setBootTime };
 })();

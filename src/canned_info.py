@@ -5,6 +5,7 @@ canned_system_info = SystemInfo(
     hostname="raspberrypi",
     local_ip="192.168.1.42",
     uptime="6d 14h",
+    boot_time="2026-08-17T09:12:00",
     temperature_c=52.6,
     cpu_percent=12.4,
     cpu_count=4,

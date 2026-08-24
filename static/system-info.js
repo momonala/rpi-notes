@@ -50,6 +50,28 @@
         }
     }
 
+    function renderReboot(bootTime) {
+        const row = document.getElementById('sidebarReboot');
+        const value = document.getElementById('sidebarRebootValue');
+        if (!row || !value) return;
+
+        if (!bootTime) {
+            row.hidden = true;
+            return;
+        }
+        const date = new Date(bootTime);
+        if (isNaN(date.getTime())) {
+            row.hidden = true;
+            return;
+        }
+        row.hidden = false;
+        const formatted = date.toLocaleString(undefined, {
+            year: 'numeric', month: 'short', day: 'numeric',
+            hour: 'numeric', minute: '2-digit',
+        });
+        value.textContent = `Last reboot: ${formatted}`;
+    }
+
     function tempFill(celsius) {
         if (celsius == null) return null;
         const span = TEMP_BAR_MAX_C - TEMP_BAR_MIN_C;
@@ -61,6 +83,8 @@
         container.removeAttribute('aria-busy');
 
         renderIp(info.local_ip);
+        renderReboot(info.boot_time);
+        window.ServiceMonitorSystemMetricsChart?.setBootTime(info.boot_time);
 
         setTile(container, 'cpu', {
             value: formatValue(info.cpu_percent, '%'),

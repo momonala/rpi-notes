@@ -7,6 +7,7 @@ import socket
 import subprocess
 import time
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 import requests
@@ -271,6 +272,7 @@ class SystemInfo:
     hostname: str
     local_ip: str | None
     uptime: str | None
+    boot_time: str | None
     temperature_c: float | None
     cpu_percent: float | None
     cpu_count: int | None
@@ -457,6 +459,7 @@ def get_system_info() -> SystemInfo:
         hostname=platform.node(),
         local_ip=_read_local_ip(),
         uptime=_read_uptime(),
+        boot_time=_read_boot_time(),
         temperature_c=_read_cpu_temperature(),
         cpu_percent=_read_cpu_percent(),
         cpu_count=os.cpu_count(),
@@ -483,3 +486,12 @@ def _read_uptime() -> str | None:
     if hours:
         return f"{hours}h"
     return f"{minutes}m"
+
+
+def _read_boot_time() -> str | None:
+    """Last reboot timestamp (local time, ISO 8601) derived from /proc/uptime."""
+    try:
+        seconds = float(Path("/proc/uptime").read_text().split()[0])
+    except (OSError, ValueError, IndexError):
+        return None
+    return datetime.fromtimestamp(time.time() - seconds).isoformat()
