@@ -849,12 +849,15 @@ textarea:focus-visible {
 
 @media (max-width: 639px) {
     /* Force a fixed column count (rather than auto-fit/minmax) so these grids always render
-       as a single row on narrow phones — cards shrink to fit instead of wrapping. */
-    #systemMetrics.metric-grid {
+       as a single row on narrow phones — cards shrink to fit instead of wrapping. Keyed on a
+       class, not the id, because the loading skeleton copies the grid's class list: on an id
+       selector the skeleton kept the auto-fit columns, wrapped to two rows, and its taller box
+       went on dictating the wrap's height long after the real tiles faded in. */
+    .metric-grid--system {
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
-    #r2Usage.metric-grid {
+    .metric-grid--r2 {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 

@@ -733,6 +733,25 @@
 .metric-skel__bar--wide  { width: 70%; }
 .metric-skel__bar--value { width: 45%; height: 1.1rem; }
 
+/* Phones compact the real tiles (app.css) — shrink the skeleton to match, or the
+   taller placeholder sets the shared grid cell's height and the revealed tiles
+   sit in a box far bigger than their content. */
+@media (max-width: 639px) {
+    .metric-skel__tile {
+        padding: var(--spacing-xs);
+    }
+
+    .metric-skel__bar {
+        height: 0.4rem;
+    }
+
+    .metric-skel__bar + .metric-skel__bar {
+        margin-top: var(--spacing-xs);
+    }
+
+    .metric-skel__bar--value { height: 0.75rem; }
+}
+
 /* Number pop-in — the metric tile value. inline-flex would break
    the tile's block layout, so keep the group a block-level line
    box and let the digits ride inside it. */
