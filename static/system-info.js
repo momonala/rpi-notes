@@ -50,6 +50,17 @@
         }
     }
 
+    // "Last reboot" reads better with an at-a-glance age next to the timestamp.
+    const RELATIVE_TIME = new Intl.RelativeTimeFormat(undefined, { numeric: 'always' });
+
+    function relativeAge(date) {
+        const minutes = Math.floor((Date.now() - date.getTime()) / 60000);
+        if (minutes < 1) return 'just now';
+        if (minutes < 60) return RELATIVE_TIME.format(-minutes, 'minute');
+        if (minutes < 1440) return RELATIVE_TIME.format(-Math.floor(minutes / 60), 'hour');
+        return RELATIVE_TIME.format(-Math.floor(minutes / 1440), 'day');
+    }
+
     function renderReboot(bootTime) {
         const row = document.getElementById('sidebarReboot');
         const value = document.getElementById('sidebarRebootValue');
@@ -69,7 +80,7 @@
             year: 'numeric', month: 'short', day: 'numeric',
             hour: 'numeric', minute: '2-digit',
         });
-        value.textContent = `Last reboot: ${formatted}`;
+        value.textContent = `Last reboot: ${formatted} (${relativeAge(date)})`;
     }
 
     function tempFill(celsius) {

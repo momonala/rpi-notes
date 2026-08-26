@@ -47,6 +47,9 @@
         <symbol id="icon-external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" />
         </symbol>
+        <symbol id="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+        </symbol>
         <symbol id="icon-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
         </symbol>
@@ -191,6 +194,17 @@
                             <svg class="service-details__icon" aria-label="CI {{ svc.ci_status }}"><use href="#icon-{% if svc.ci_status == 'success' %}check-circle{% elif svc.ci_status == 'failure' %}x-circle{% else %}alert-triangle{% endif %}"></use></svg>
                         </a>
                         {% endif %}
+                        {# Mobile-only rollup of this row's status icons; refreshed by sidebar-details.js
+                           once CI and backup status arrive. Keep the states in sync with HEALTH_STATES. #}
+                        {% set _health = 'broken' if (svc.is_failed or svc.ci_status == 'failure') else ('ok' if svc.is_active else 'inactive') %}
+                        {% set _health_mod = {'broken': ' service-health--failed', 'inactive': ' service-health--inactive', 'ok': ''}[_health] %}
+                        {% set _health_icon = {'broken': 'close', 'inactive': 'pause-circle', 'ok': 'check'}[_health] %}
+                        {% set _health_text = {'broken': 'Needs attention', 'inactive': 'Inactive', 'ok': 'All checks pass'}[_health] %}
+                        <span class="service-health{{ _health_mod }}" title="{{ _health_text }}">
+                            <svg class="service-health__icon" aria-label="{{ _health_text }}">
+                                <use href="#icon-{{ _health_icon }}"></use>
+                            </svg>
+                        </span>
                         {% if svc.uptime %}
                         <span class="service-uptime">{{ svc.uptime }}</span>
                         {% endif %}
@@ -200,7 +214,7 @@
                 {% if services %}</div>{% endif %}
             </nav>
         </aside>
-        <script>try{var _s=document.getElementById('sidebar');if(_s){var _w=window.innerWidth;if(_w<640){_s.className='sidebar sidebar--closed';}else if(localStorage.getItem('servicemonitor:sidebar-collapsed')==='true'&&_w>=1024){_s.classList.add('sidebar--collapsed');}}}catch(e){}</script>
+        <script>try{var _s=document.getElementById('sidebar');if(_s){var _w=window.innerWidth;if(_w<640){_s.className='sidebar sidebar--closed';}else if(localStorage.getItem('servicemonitor:sidebar-collapsed')==='true'){_s.classList.add('sidebar--collapsed');}}}catch(e){}</script>
 
         <!-- Main Content -->
         <main class="main-content">

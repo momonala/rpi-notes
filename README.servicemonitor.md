@@ -219,9 +219,9 @@ Returns:
 
 `cpu_percent`/`memory_used_pct` are each service's most recent sample from `system_metrics.db` (same
 source as `/api/services/history`), fetched for all services in one batched query
-(`latest_service_samples_payload`); `null` when a service has no recorded samples yet. Rendered in the
-sidebar row as two plain percentages, next to the alert bell, hidden along with the rest of the row's
-detail columns when the sidebar is collapsed.
+(`latest_service_samples_payload`); `null` when a service has no recorded samples yet. The sidebar row
+renders memory as `NNN MB N.N%` (the percent is dropped under 640px, where the column is too narrow for
+both), hidden along with the rest of the row's detail columns when the sidebar is collapsed.
 
 ### GET `/api/services/backup-status`
 
@@ -375,6 +375,8 @@ starting at `ALERT_RESET_HOUR`, default 6 AM).
 | `projects_*` | Naming convention for monitored services; only services matching this pattern are displayed |
 | `ServiceStatus` | Dataclass holding parsed service info: name, is_active, is_failed, uptime, memory, cpu, last_error, ci_status |
 | Status indicators | Green = active (running), Red = failed, Gray = inactive |
+| Mobile sidebar row | Under 640px the row's four status icons (unit, CI, alert bell, cloud backup) collapse to one rollup glyph: red X if the unit failed, CI failed, or the backup is red; gray pause if the unit is merely stopped; green check otherwise. A stale-backup dot or pending CI counts as green. Rendered server-side from unit+CI state, refreshed by `sidebar-details.js` once backup status arrives |
+| Sidebar collapse | The collapse toggle is available from 640px up (tablet included); state persists in `localStorage` under `servicemonitor:sidebar-collapsed`. Below 640px the sidebar is a drawer driven by the hamburger instead |
 | Project groups | Services sharing the same base name (e.g. `projects_energy-monitor_*`) are visually grouped in the sidebar |
 | CI status | Fetched from GitHub Actions API for services without a suffix; cached 60s per repo |
 | Telegram alerts | One transport (`send_telegram_message`); service failures use `send_service_failure_alert`; custom messages use `POST /api/alert` |

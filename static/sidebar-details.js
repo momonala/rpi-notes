@@ -26,7 +26,8 @@
     }
 
     /**
-     * Build a "[icon] NNN MB (N.N%)" cell for the sidebar row. Text color reflects usage
+     * Build a "[icon] NNN MB N.N%" cell for the sidebar row (the percent is hidden on mobile,
+     * where the column is too narrow to read both). Text color reflects usage
      * level (ok/warn/crit) instead of a fixed per-metric identity color.
      * @param {string} className - 'service-mem'
      * @param {string} icon - icon symbol name
@@ -57,7 +58,7 @@
 
             const pctEl = document.createElement('span');
             pctEl.className = 'service-metric__pct';
-            pctEl.textContent = ` (${pct.toFixed(1)}%)`;
+            pctEl.textContent = `${pct.toFixed(1)}%`;
             value.appendChild(pctEl);
         } else {
             value.textContent = pct != null ? `${pct.toFixed(1)}%` : '—';
@@ -122,6 +123,50 @@
         item.title = 'Click to sort by this column';
         item.textContent = status.uptime || '—';
         grid.appendChild(item);
+
+        updateHealthRollup(serviceItem);
+    }
+
+    // States for the mobile health rollup, worst first. #icon-close is a bare X — the same
+    // glyph the broken state needs, so there's no separate symbol for it.
+    const HEALTH_STATES = {
+        broken: { modifier: 'service-health--failed', icon: 'close', text: 'Needs attention' },
+        inactive: { modifier: 'service-health--inactive', icon: 'pause-circle', text: 'Inactive' },
+        ok: { modifier: null, icon: 'check', text: 'All checks pass' },
+    };
+
+    /**
+     * Refresh the mobile-only health rollup from the row's own status icons: red X if anything
+     * is actually broken (unit failed, CI failed, backup missing), gray pause if the unit is
+     * merely stopped, green check otherwise. The alert bell is a preference rather than a health
+     * signal, so it never turns the rollup red, and a stale-backup dot still counts as green.
+     * @param {Element} serviceItem
+     */
+    function updateHealthRollup(serviceItem) {
+        const grid = serviceItem.querySelector('.service-item-grid');
+        if (!grid) return;
+
+        const state = grid.querySelector(
+            '.status-icon--failed, .service-details__item--ci-failure, .service-details__item--backup-red',
+        )
+            ? HEALTH_STATES.broken
+            : grid.querySelector('.status-icon--inactive')
+                ? HEALTH_STATES.inactive
+                : HEALTH_STATES.ok;
+
+        let cell = grid.querySelector('.service-health');
+        if (!cell) {
+            cell = document.createElement('span');
+            cell.className = 'service-health';
+            cell.appendChild(buildIcon('check', 'service-health__icon'));
+            grid.appendChild(cell);
+        }
+        cell.className = ['service-health', state.modifier].filter(Boolean).join(' ');
+        cell.title = state.text;
+        const svg = cell.querySelector('svg');
+        svg.setAttribute('aria-label', state.text);
+        svg.removeAttribute('aria-hidden');
+        cell.querySelector('use').setAttribute('href', `#icon-${state.icon}`);
     }
 
     /**
@@ -153,6 +198,8 @@
         backupSvg.removeAttribute('aria-hidden');
         backupLink.appendChild(backupSvg);
         grid.appendChild(backupLink);
+
+        updateHealthRollup(serviceItem);
     }
 
     const ALERT_FREQUENCIES = ['hourly', 'daily', 'muted'];

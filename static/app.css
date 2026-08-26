@@ -184,8 +184,8 @@ textarea:focus-visible {
     }
 }
 
-/* Desktop: collapsible sidebar */
-@media (min-width: 1024px) {
+/* Tablet and desktop: collapsible sidebar */
+@media (min-width: 640px) {
     .sidebar--collapsed {
         width: var(--sidebar-collapsed-width) !important;
         min-width: var(--sidebar-collapsed-width) !important;
@@ -473,6 +473,7 @@ textarea:focus-visible {
 
 .service-metric__pct {
     color: var(--color-text-muted);
+    margin-left: 0.4em;
 }
 
 .service-metric__icon {
@@ -514,6 +515,31 @@ textarea:focus-visible {
 /* Underline the value when the list is sorted by uptime. */
 .sidebar__nav[data-sort-mode="uptime"] .service-uptime {
     text-decoration: underline;
+}
+
+/* Mobile-only rollup of the four status icons — hidden everywhere else, where there is
+   room to show each signal on its own. */
+.service-health {
+    grid-row: 1;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-status-active);
+}
+
+.service-health--failed {
+    color: var(--color-status-failed);
+}
+
+.service-health--inactive {
+    color: var(--color-status-inactive);
+}
+
+.service-health__icon {
+    width: var(--status-icon-size);
+    height: var(--status-icon-size);
+    flex-shrink: 0;
+    display: block;
 }
 
 .service-alert-badge {
@@ -625,16 +651,36 @@ textarea:focus-visible {
         flex-shrink: 0;
     }
 
-    /* Smaller icons/columns free up width for the service name, which is the
-       thing users actually need to read in the full-width mobile sidebar. */
+    /* Smaller icons/columns free up width for the service name, which is the thing users
+       actually need to read in the full-width mobile sidebar — and four separate status
+       icons don't fit next to it, so the row drops to one rolled-up health icon and
+       re-numbers the remaining tracks. */
     .service-item-grid {
         --status-icon-size: 12px;
-        --service-metric-col: 4rem;
+        /* No percent readout here (see below), so the column only holds "NNNN MB". */
+        --service-metric-col: 2.75rem;
         --service-uptime-col: 3.25ch;
         column-gap: var(--spacing-xs);
+        grid-template-columns:
+            var(--status-icon-size)
+            var(--service-metric-col)
+            minmax(0, 1fr)
+            var(--service-uptime-col);
     }
 
+    .service-item-grid .status-icon,
+    .service-details__item--ci,
+    .service-alert-badge,
+    .service-details__item--backup {
+        display: none;
+    }
+
+    .service-health { display: inline-flex; grid-column: 1; }
+    .service-mem { grid-column: 2; }
+    .service-uptime { grid-column: 4; }
+
     .service-name {
+        grid-column: 3;
         font-size: var(--font-size-xs);
     }
 
@@ -643,8 +689,10 @@ textarea:focus-visible {
         font-size: 0.625rem;
     }
 
-    .service-details__item--backup {
-        margin-right: calc(var(--spacing-xs) + 0.15em);
+    /* The service name is what matters on a phone-width sidebar; the per-service
+       share of host RAM is detail that only earns its space on wider screens. */
+    .service-metric__pct {
+        display: none;
     }
 }
 
@@ -696,7 +744,7 @@ textarea:focus-visible {
     display: none;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 640px) {
     .sidebar__toggle {
         display: flex;
     }

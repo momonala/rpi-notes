@@ -2,7 +2,6 @@
     'use strict';
 
     const BREAKPOINT_MOBILE = 640;
-    const BREAKPOINT_TABLET = 1024;
     const STORAGE_SIDEBAR_COLLAPSED = 'servicemonitor:sidebar-collapsed';
     const CSS_CLASSES = {
         SIDEBAR_OPEN: 'sidebar--open',
@@ -17,15 +16,8 @@
         isMobileSidebarOpen: false,
     };
 
-    function getDeviceType() {
-        const width = window.innerWidth;
-        if (width < BREAKPOINT_MOBILE) return 'mobile';
-        if (width < BREAKPOINT_TABLET) return 'tablet';
-        return 'desktop';
-    }
-
     function isMobile() {
-        return getDeviceType() === 'mobile';
+        return window.innerWidth < BREAKPOINT_MOBILE;
     }
 
     function loadSidebarState() {
@@ -76,7 +68,7 @@
         setTimeout(() => mobileHamburger?.focus(), 0);
     }
 
-    function toggleDesktopSidebarCollapse() {
+    function toggleSidebarCollapse() {
         const sidebar = document.getElementById('sidebar');
         if (!sidebar) return;
         state.isSidebarCollapsed = !state.isSidebarCollapsed;
@@ -90,17 +82,14 @@
         const mobileHamburger = document.getElementById('mobileHamburger');
         const sidebarOverlay = document.getElementById('sidebarOverlay');
 
-        const device = getDeviceType();
-        if (device === 'mobile') {
+        if (isMobile()) {
             sidebar.classList.add(CSS_CLASSES.SIDEBAR_CLOSED);
             sidebar.classList.remove(CSS_CLASSES.SIDEBAR_OPEN, CSS_CLASSES.SIDEBAR_COLLAPSED);
             mobileHamburger?.classList.remove(CSS_CLASSES.HIDDEN);
         } else {
             sidebar.classList.remove(CSS_CLASSES.SIDEBAR_CLOSED, CSS_CLASSES.SIDEBAR_OPEN);
             mobileHamburger?.classList.add(CSS_CLASSES.HIDDEN);
-            if (device === 'desktop' && state.isSidebarCollapsed) {
-                sidebar.classList.add(CSS_CLASSES.SIDEBAR_COLLAPSED);
-            }
+            sidebar.classList.toggle(CSS_CLASSES.SIDEBAR_COLLAPSED, state.isSidebarCollapsed);
         }
         sidebarOverlay?.classList.remove(CSS_CLASSES.OVERLAY_VISIBLE);
         document.body.style.overflow = '';
@@ -143,11 +132,10 @@
     function setupEventListeners() {
         document.getElementById('sidebarToggle')?.addEventListener('click', (event) => {
             event.stopPropagation();
-            const device = getDeviceType();
-            if (device === 'mobile') {
+            if (isMobile()) {
                 openMobileSidebar();
-            } else if (device === 'desktop') {
-                toggleDesktopSidebarCollapse();
+            } else {
+                toggleSidebarCollapse();
             }
         });
 

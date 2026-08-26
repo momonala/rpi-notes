@@ -173,6 +173,7 @@ def test_sample_from_info():
         hostname="pi",
         local_ip="192.168.1.42",
         uptime="1d",
+        boot_time="2026-08-24T11:52:00",
         temperature_c=55.5,
         cpu_percent=12.0,
         cpu_count=4,
